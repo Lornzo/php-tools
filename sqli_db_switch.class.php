@@ -37,7 +37,7 @@ class sqli_db_switch{
      */
     protected $_conn = null;
 
-    protected $_change_user = false;
+    protected $_connection_type = "new_connection";
     
     public function __construct() {
     }
@@ -76,7 +76,7 @@ class sqli_db_switch{
      */
     public function setConnectionByArray(array $connection_array){
         if(!empty($connection_array["db_host"]) && !empty($connection_array["db_name"]) && !empty($connection_array["db_user"]) && !empty($connection_array["db_pass"])){
-            $this->_checkChangeUser($connection_array["db_user"]);
+            $this->_checkConnectionType();
             $this->_host = $connection_array["db_host"];
             $this->_name = $connection_array["db_name"];
             $this->_user = $connection_array["db_user"];
@@ -87,8 +87,8 @@ class sqli_db_switch{
         return $this;
     }
     
-    protected function _checkChangeUser(string $user ){
-        $this->_change_user = (!empty($this->_user) && $this->_user != $user)?true:false;
+    protected function _checkConnectionType(array $connection_array){
+        
     }
 
     /**
