@@ -37,7 +37,14 @@ class sqli_db_switch{
      */
     protected $_conn = null;
 
-    protected $_connection_type = "new_connection";
+    /**
+     * 設定連線的類型
+     * -1 => 不連線
+     * 0 => 尚未連線
+     * 1 => 設定新的連線
+     * @var int
+     */
+    protected $_connection_type = 0;
     
     public function __construct() {
     }
@@ -76,7 +83,7 @@ class sqli_db_switch{
      */
     public function setConnectionByArray(array $connection_array){
         if(!empty($connection_array["db_host"]) && !empty($connection_array["db_name"]) && !empty($connection_array["db_user"]) && !empty($connection_array["db_pass"])){
-            $this->_checkConnectionType();
+            $this->_checkConnectionType($connection_array);
             $this->_host = $connection_array["db_host"];
             $this->_name = $connection_array["db_name"];
             $this->_user = $connection_array["db_user"];
@@ -88,7 +95,11 @@ class sqli_db_switch{
     }
     
     protected function _checkConnectionType(array $connection_array){
-        
+        if($this->_conn){
+            
+        }else{
+            $this->_connection_type = 1;
+        }
     }
 
     /**
@@ -97,6 +108,9 @@ class sqli_db_switch{
      */
     protected function _setConnection(){
         if(!$this->_conn && !empty($this->_host) && !empty($this->_name) && !empty($this->_user) && !empty($this->_pass)){
+            $this->_conn = mysqli_connect($this->_host,$this->_user,$this->_pass);
+
+            exit();
             $this->_conn = !empty($this->_port)?mysqli_connect($this->_host, $this->_user, $this->_pass, $this->_name, $this->_port):mysqli_connect($this->_host,$this->_user,$this->_pass,$this->_name);    
             if($this->_conn && !empty($this->_charset)){mysqli_set_charset($this->_conn, $this->_charset);}
         }
