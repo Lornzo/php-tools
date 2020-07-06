@@ -36,15 +36,6 @@ class sqli_db_switch{
      * @var mysqli_connect() mysqli連線 
      */
     protected $_conn = null;
-
-    /**
-     * 設定連線的類型
-     * -1 => 不連線
-     * 0 => 尚未連線
-     * 1 => 設定新的連線
-     * @var int
-     */
-    protected $_connection_type = 0;
     
     public function __construct() {
     }
@@ -78,12 +69,12 @@ class sqli_db_switch{
 
     /**
      * 使用陣列的方式來設定資料庫連線參數
-     * @param array $connection_array
+     * @param array $connection_array db_host,db_name,db_user,db_pass,db_charset , db_port
      * @return $this
      */
     public function setConnectionByArray(array $connection_array){
         if(!empty($connection_array["db_host"]) && !empty($connection_array["db_name"]) && !empty($connection_array["db_user"]) && !empty($connection_array["db_pass"])){
-            $this->_checkConnectionType($connection_array);
+            $this->_checkConnection($connection_array);
             $this->_host = $connection_array["db_host"];
             $this->_name = $connection_array["db_name"];
             $this->_user = $connection_array["db_user"];
@@ -94,11 +85,23 @@ class sqli_db_switch{
         return $this;
     }
     
-    protected function _checkConnectionType(array $connection_array){
+    /**
+     * 檢查連線型態，如果是已經連線的狀態下，根據連線參數是否不同而做出：清空連線、更改使用者或是切換Databasse的動作
+     * @param array $connection_array
+     */
+    protected function _checkConnection(array $connection_array){
         if($this->_conn){
-            
-        }else{
-            $this->_connection_type = 1;
+            if( ($this->_host != $connection_array["db_host"]) || (!empty($connection_array["db_port"]) && $this->_port != $connection_array["db_port"])){
+                mysqli_close($this->_conn);
+                $this->_conn = null;
+            }elseif($this->_user != $connection_array["db_user"]){
+                mysqli_change_user($this->_conn, $connection_array["db_user"], $connection_array["db_pass"], $connection_array["db_name"]);
+            }elseif($this->_name != $connection_array["db_name"]){
+                mysqli_select_db($this->_conn, $connection_array["db_name"]);
+            }
+            if($this->_conn && !empty($this->_charset) && !empty($connection_array["db_charset"]) && $this->_charset != $connection_array["db_charset"]){
+                mysqli_set_charset($this->_conn, $connection_array["db_charset"]);
+            }
         }
     }
 
@@ -108,9 +111,6 @@ class sqli_db_switch{
      */
     protected function _setConnection(){
         if(!$this->_conn && !empty($this->_host) && !empty($this->_name) && !empty($this->_user) && !empty($this->_pass)){
-            $this->_conn = mysqli_connect($this->_host,$this->_user,$this->_pass);
-
-            exit();
             $this->_conn = !empty($this->_port)?mysqli_connect($this->_host, $this->_user, $this->_pass, $this->_name, $this->_port):mysqli_connect($this->_host,$this->_user,$this->_pass,$this->_name);    
             if($this->_conn && !empty($this->_charset)){mysqli_set_charset($this->_conn, $this->_charset);}
         }
