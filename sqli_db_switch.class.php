@@ -5,22 +5,22 @@ class sqli_db_switch{
     /**
      * @var string 資料庫的位置
      */
-    protected $_host;
+    protected $_host = "";
     
     /**
      * @var string 資料庫的名稱 
      */
-    protected $_name;
+    protected $_name = "";
     
     /**
      * @var string 資料庫登入的帳號 
      */
-    protected $_user;
+    protected $_user = "";
     
     /**
      * @var string 資料庫登入的密碼 
      */
-    protected $_pass;
+    protected $_pass = "";
     
     /**
      * @var string 資料庫讀取的編碼 
@@ -30,18 +30,28 @@ class sqli_db_switch{
     /**
      * @var string 資料庫的port
      */
-    protected $_port;
+    protected $_port = "";
     
     /**
      * @var mysqli_connect() mysqli連線 
      */
     protected $_conn = null;
     
+    /**
+     * @var string 操作的資料表 
+     */
+    protected $_table = "";
+    
     public function __construct() {
     }
     
-    public function listData(){
-        
+    /**
+     * 設定要操作的資料表
+     * @param string $table
+     * @return $this
+     */
+    public function setTable(string $table){
+        $this->_table = $table;return $this;
     }
 
     /**
@@ -51,6 +61,17 @@ class sqli_db_switch{
      */
     public function doQuery(string $query){
         return ($this->_setConnection())?mysqli_query($this->_conn, $query):false;
+    }
+    
+    /**
+     * 執行多行sql語法
+     * @param array $querys
+     * @param int $do_query_size 每一次執行的語法數
+     * @return type
+     */
+    public function doQuerys(array $querys){
+        $result = array();
+        return $result;
     }
 
     /**
@@ -115,6 +136,10 @@ class sqli_db_switch{
             if($this->_conn && !empty($this->_charset)){mysqli_set_charset($this->_conn, $this->_charset);}
         }
         return ($this->_conn)?true:false;
+    }
+    
+    public function __destruct() {
+        if($this->_conn){mysqli_close($this->_conn);}
     }
 }
 ?>
