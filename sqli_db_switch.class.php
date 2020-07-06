@@ -73,7 +73,13 @@ class sqli_db_switch{
         $this->_table = $table;return $this;
     }
     
-    public function appendData(){}
+    public function appendData(array $input){
+        $result = 0 ;
+        if(!empty($this->_table)){
+            $query = "INSERT INTO ".$this->_table;
+        }
+        return $result;
+    }
     
     /**
      * 設定查詢語句的欄位
