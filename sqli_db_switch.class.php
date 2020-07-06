@@ -73,6 +73,8 @@ class sqli_db_switch{
         $this->_table = $table;return $this;
     }
     
+    public function appendData(){}
+    
     /**
      * 設定查詢語句的欄位
      * @param array $select 陣列值為欄位名稱，若為空，則為全部欄位
@@ -106,6 +108,7 @@ class sqli_db_switch{
      * @return mysqli_result
      */
     public function doQuery(string $query){
+        if($this->_debug){echo $query;}
         return ($this->_setConnection())?mysqli_query($this->_conn, $query):false;
     }
     
@@ -118,6 +121,7 @@ class sqli_db_switch{
      */
     public function doQuerys(array $querys,bool $return = false,int $do_query_size = 5000){
         $result = array();
+        if($this->_debug){;print_r($querys);}
         if($this->_setConnection() && !empty($querys)){
             $do_querys = array_chunk($querys, $do_query_size);
             foreach($do_querys as $index => $do_query){
