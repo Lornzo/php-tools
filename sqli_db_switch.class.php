@@ -66,11 +66,26 @@ class sqli_db_switch{
     /**
      * 執行多行sql語法
      * @param array $querys
+     * @param bool $return 是否要取出執行資料
      * @param int $do_query_size 每一次執行的語法數
-     * @return type
+     * @return array
      */
-    public function doQuerys(array $querys){
+    public function doQuerys(array $querys,bool $return = false,int $do_query_size = 5000){
         $result = array();
+        if($this->_setConnection() && !empty($querys)){
+            $do_querys = array_chunk($querys, $do_query_size);
+            foreach($do_querys as $index => $do_query){
+                $result[$index] = mysqli_multi_query($this->_conn, implode("", $do_query));
+                if($result[$index] && $return){
+                    $buffer = array();
+                    do{
+                        $buffer[] =($datas = mysqli_store_result($this->_conn))? mysqli_fetch_all($datas,MYSQLI_ASSOC):false;
+                        mysqli_free_result($datas);   
+                    }while (mysqli_next_result($this->_conn));
+                    $result[$index] = $buffer;
+                }
+            }
+        }
         return $result;
     }
 
