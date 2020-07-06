@@ -73,10 +73,17 @@ class sqli_db_switch{
         $this->_table = $table;return $this;
     }
     
-    public function appendData(array $input){
-        $result = 0 ;
-        if(!empty($this->_table)){
-            $query = "INSERT INTO ".$this->_table;
+    /**
+     * 輸入單筆資料
+     * @param array $input array("cols"=>"value")
+     * @param bool $ignore 是否要ignore，如果為true的時候會無視因重複key而輸入失敗的情況
+     * @return int -1為沒有執行，否執會return mysqli_insert_id
+     */
+    public function appendData(array $input , bool $ignore=false){
+        $result = -1;
+        if(!empty($this->_table) && !empty($input)){
+            $query = !empty($ignore)?"INSERT IGNORE INTO ".$this->_table."(".implode(",", array_keys($input)).") VALUES ('".implode("','", $input)."');":"INSERT INTO ".$this->_table."(".implode(",", array_keys($input)).") VALUES ('".implode("','", $input)."');";
+            $result = !empty($this->doQuery($query))? mysqli_insert_id($this->_conn):0;
         }
         return $result;
     }
