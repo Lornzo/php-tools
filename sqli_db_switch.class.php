@@ -1,5 +1,7 @@
 <?php
-
+/**
+ * 
+ */
 class sqli_db_switch{
     
     /**
@@ -87,7 +89,36 @@ class sqli_db_switch{
         }
         return $result;
     }
+
+    /**
+     * 在一句sql指令中新增多筆資料
+     * @param array $cols 輸入的欄位
+     * @param array $datas 可帶入$this->getAppendDataString所得出的字串組成的陣列array("('aa','bb')","('bb','cc')")
+     * @param bool $ignore 是否要ignore，如果為true的時候會無視因重複key而輸入失敗的情況
+     * @param int $do_insert_size 一次插入的資料上限，如果資料量大於這個數，執行語句的時候會拆開來批次執行
+     * @return int 插入的列數
+     */
+    public function appendDatas(array $cols , array $datas ,bool $ignore=false ,int $do_insert_size = 5000){
+        $result = 0;
+        if(!empty($this->_table) && !empty($cols) && !empty($datas)){
+            $inputs = array_chunk($datas, $do_insert_size);
+            foreach($inputs as $input){
+                $query = !empty($ignore)? "INSERT IGNORE INTO ".$this->_table."(".implode(",", $cols).") VALUES ".implode(",", $input).";": "INSERT INTO ".$this->_table."(".implode(",", $cols).") VALUES ".implode(",", $input).";";
+                $result +=  !empty($this->doQuery($query))?mysqli_affected_rows($this->_conn):0;
+            }
+        }
+        return $result;
+    }
     
+    /**
+     * 組成輸入資料庫的字串
+     * @param array $input_data array('value1','value2','value3')
+     * @return string ('value1','value2','value3')
+     */
+    public function getAppendDataString(array $input_data){
+        return !empty($input_data)? "('".implode("','", $input_data)."')":"";
+    }
+
     /**
      * 設定查詢語句的欄位
      * @param array $select 陣列值為欄位名稱，若為空，則為全部欄位
@@ -215,7 +246,7 @@ class sqli_db_switch{
         }
         return ($this->_conn)?true:false;
     }
-    
+
     public function __destruct() {
         /*關閉資料庫連線，並清空變數*/
         if($this->_conn){mysqli_close($this->_conn);$this->_conn=null;}
