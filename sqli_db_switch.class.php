@@ -42,7 +42,26 @@ class sqli_db_switch{
      */
     protected $_table = "";
     
+    /**
+     * @var string 在進行select操作時所要select的欄位，預設* 
+     */
+    protected $_select = "*";
+    
+    /**
+     * @var bool 是否開啟偵錯模式
+     */
+    protected $_debug = false;
+    
     public function __construct() {
+    }
+    
+    /**
+     * 設定是否履開啟偵錯模式
+     * @param bool $debug
+     * @return $this
+     */
+    public function setDebug(bool $debug){
+        $this->_debug = $debug;return $this;
     }
     
     /**
@@ -52,6 +71,33 @@ class sqli_db_switch{
      */
     public function setTable(string $table){
         $this->_table = $table;return $this;
+    }
+    
+    /**
+     * 設定查詢語句的欄位
+     * @param array $select 陣列值為欄位名稱，若為空，則為全部欄位
+     * @return $this
+     */
+    public function setSelect(array $select = array()){
+        $this->_select = !empty($select)?implode(",", $select):"*";return $this;
+    }
+    
+    /**
+     * 取出單一行資料
+     * @param array $condition 查詢條件
+     * @param array $back_strings 後面要下的語句，用array包起來，like array("ORDER BY aa DESC","cc ASC")，採implode方式組合起來的
+     * @return type
+     */
+    public function fetchData(array $condition = array() , array $back_strings = array()){
+        $result = array();
+        if($this->_setConnection() && !empty($this->_table)){
+            $query = "SELECT ".$this->_select." FROM ".$this->_table;
+            $query.= !empty($condition)?" WHERE ".implode(" AND ", $condition):"";
+            $query.= !empty($back_strings)?" ".implode(" ", $back_strings):"";
+            $query .= " LIMIT 0,1;";
+            $result = mysqli_fetch_assoc($this->doQuery($query));
+        }
+        return $result;
     }
 
     /**
@@ -154,7 +200,8 @@ class sqli_db_switch{
     }
     
     public function __destruct() {
-        if($this->_conn){mysqli_close($this->_conn);}
+        /*關閉資料庫連線，並清空變數*/
+        if($this->_conn){mysqli_close($this->_conn);$this->_conn=null;}
     }
 }
 ?>
