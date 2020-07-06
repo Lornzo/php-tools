@@ -54,6 +54,26 @@ class sqli_db_switch{
      */
     protected $_debug = false;
     
+    /**
+     * @var bool 在listData是否要加上資料上限 
+     */
+    protected $_limit = false;
+    
+    /**
+     * @var int 在$_limit為true的時候，一次要跑出幾筆 
+     */
+    protected $_limit_size = 20;
+    
+    /**
+     * @var int 在$_limit為true的時候，計算總共有幾頁 
+     */
+    protected $_limit_total = 1;
+    
+    /**
+     * @var int 在$_limit為true的時候，現在所在的頁數 
+     */
+    protected $_limit_page = 1;
+    
     public function __construct() {
     }
     
@@ -117,6 +137,28 @@ class sqli_db_switch{
      */
     public function getAppendDataString(array $input_data){
         return !empty($input_data)? "('".implode("','", $input_data)."')":"";
+    }
+    
+    /**
+     * 設定在使用listData的時候要不要有資料上限
+     * @param bool $use_limit
+     * @return $this
+     */
+    public function useLimit(bool $use_limit){
+        $this->_limit = $use_limit;return $this;
+    }
+    
+    /**
+     * 設定在使用listData的時候，每一頁要有多少資料
+     * @param int $size 如果小於1的話就會變回預設的20
+     * @return $this
+     */
+    public function setPageSize(int $size){
+        $this->_limit_size = ($size > 0)?$size:20;return $this;
+    }
+    
+    public function setPage(int $page){
+        
     }
 
     /**
