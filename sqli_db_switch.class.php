@@ -157,8 +157,30 @@ class sqli_db_switch{
         $this->_limit_size = ($size > 0)?$size:20;return $this;
     }
     
+    /**
+     * 設定這一頁的頁數
+     * @param int $page
+     * @param $this
+     */
     public function setPage(int $page){
-        
+        $this->_limit_page = $page > 0?$page:1; return $this;
+    }
+    
+    /**
+     * 在$_limit=true的情況下，計算出固有條件下有幾頁
+     * @param array $condition
+     * @param array $back_strings
+     * @return int
+     */
+    public function getTotalPage(array $condition,array $back_strings = array()){
+        $result = 1;
+        if($this->_limit && !empty($this->_table)){
+            $select_buffer = $this->_select;
+            $data = $this->setSelect(array("COUNT(*) AS total"))->fetchData($condition, $back_strings);
+            $result = !empty((int)$data["total"])?(int)$data["total"]:1;
+            $this->_select = $select_buffer;
+        }
+        return $result;
     }
 
     /**
