@@ -77,7 +77,7 @@ class sqli_db_switch{
     /**
      * @var int 在$_limit為true的時候，顯示出前後的頁碼 
      */
-    protected $_limit_page_window = 10;
+    protected $_limit_page_half = 5;
     
     public function __construct() {
     }
@@ -163,29 +163,37 @@ class sqli_db_switch{
     }
     
     /**
-     * 設定這一頁的頁數
+     * 設定這一頁的頁數，如果有頁數的話，必定要先呼叫countTotalPage
      * @param int $page
      * @param $this
      */
     public function setPage(int $page){
-        $this->_limit_page = $page > 0?$page:1; return $this;
+        $this->_limit_page = $page < 1 ? 1 : ($page <= $this->_limit_total)?$page:$this->_limit_total;return $this;
     }
     
     /**
      * 在$_limit=true的情況下，計算出固有條件下有幾頁
      * @param array $condition
      * @param array $back_strings
-     * @return int
+     * @return $this
      */
-    public function getTotalPage(array $condition,array $back_strings = array()){
-        $result = 1;
-        if($this->_limit && !empty($this->_table)){
+    public function countTotalPage(array $condition,array $back_strings = array()){
+        if($this->_limit && !empty($this->_table) && $this->_limit_size > 0){
             $select_buffer = $this->_select;
             $data = $this->setSelect(array("COUNT(*) AS total"))->fetchData($condition, $back_strings);
-            $result = !empty((int)$data["total"])?(int)$data["total"]:1;
+            $result = !empty((int)$data["total"])?ceil((int)$data["total"] / $this->_limit_size):1;
             $this->_select = $select_buffer;
+            $this->_limit_total = $result;
         }
-        return $result;
+        return $this;
+    }
+    
+    /**
+     * 取得countTotalPage計算之後的總頁數，必需要先呼叫$this->countTotalPage()之後才會拿到正確的值
+     * @return int
+     */
+    public function getTotalPage(){
+        return $this->_limit_total;
     }
     
     /**
@@ -194,12 +202,28 @@ class sqli_db_switch{
      * @return $this
      */
     public function setWindowSize(int $size){
-        $this->_limit_page_window = $size > 0 ? $size:10;return $this;
+        $this->_limit_page_half = $size > 0 ? $size:5;return $this;
     }
     
+    /**
+     * 取得當頁所可以顯示的頁碼數，必需要先呼叫countTotalPage
+     * @return array array("start","end")
+     */
     public function getPagination(){
         $result = array("start"=>1,"end"=>1);
-        if($this->_limit && $this->_limit_total > 1 && $this->_limit_page_window >1){
+        if($this->_limit && $this->_limit_total > 1 && $this->_limit_page_half >0){
+            $this->_limit_page = 20;
+            $result = array("start"=>1,"end"=>$this->_limit_total);
+            if($this->_limit_total > (($this->_limit_page_half * 2) + 1)){
+                $result = array("start"=>$this->_limit_page - $this->_limit_page_half,"end"=>$this->_limit_page+$this->_limit_page_half);
+                if($result["start"] < 1){
+                    $result["start"] = 1;
+                    $result["end"] = ($this->_limit_page_half * 2) + 1;
+                }elseif($result["end"] > $this->_limit_total){
+                    $result["end"] = $this->_limit_total;
+                    $result["start"] = $this->_limit_total - (($this->_limit_page_half * 2));
+                }
+            }
         }
         return $result;
     }
@@ -212,21 +236,44 @@ class sqli_db_switch{
     public function setSelect(array $select = array()){
         $this->_select = !empty($select)?implode(",", $select):"*";return $this;
     }
-    
+
     /**
      * 取出單一行資料
      * @param array $condition 查詢條件
      * @param array $back_strings 後面要下的語句，用array包起來，like array("ORDER BY aa DESC","cc ASC")，採implode方式組合起來的
      * @return type
      */
-    public function fetchData(array $condition = array() , array $back_strings = array()){
-        $result = array();
-        if($this->_setConnection() && !empty($this->_table)){
-            $query = "SELECT ".$this->_select." FROM ".$this->_table;
-            $query.= !empty($condition)?" WHERE ".implode(" AND ", $condition):"";
-            $query.= !empty($back_strings)?" ".implode(" ", $back_strings):"";
-            $query .= " LIMIT 0,1;";
-            $result = mysqli_fetch_assoc($this->doQuery($query));
+    public function fetchData(array $condition = array(),array $select_back=array()){
+        $select_back[] = "LIMIT 0,1";
+        $data = $this->doQuery($this->getSelectString($condition, $select_back));
+        return !empty($data)?mysqli_fetch_assoc($data):array();
+    }
+    
+    /**
+     * 取出多筆資料
+     * @param array $condition
+     * @param array $back_strings
+     * @return type
+     */
+    public function listData(array $condition = array(),array $select_back=array()){
+        if($this->_limit){$select_back[] = "LIMIT ". (($this->_limit_page-1)*$this->_limit_size).",".$this->_limit_size;}
+        $data = $this->doQuery($this->getSelectString($condition, $select_back));
+        return !empty($data)?mysqli_fetch_all($data,MYSQLI_ASSOC):array();
+    }
+    
+    /**
+     * 取得Mysql Select的語法字串
+     * @param array $condition
+     * @param array $back_strings
+     * @return string
+     */
+    public function getSelectString(array $condition = array(), array $back_strings=array()){
+        $result = "";
+        if(!empty($this->_table)){
+            $result = "SELECT ".$this->_select." FROM ".$this->_table;
+            $result.= !empty($condition)?" WHERE ".implode(" AND ", $condition):"";
+            $result.= !empty($back_strings)?" ".implode(" ", $back_strings):"";
+            $result .= ";";
         }
         return $result;
     }
@@ -238,7 +285,7 @@ class sqli_db_switch{
      */
     public function doQuery(string $query){
         if($this->_debug){echo $query;}
-        return ($this->_setConnection())?mysqli_query($this->_conn, $query):false;
+        return ($this->_setConnection() && !empty($query))?mysqli_query($this->_conn, $query):false;
     }
     
     /**
@@ -298,6 +345,15 @@ class sqli_db_switch{
             $this->_port = !empty($connection_array["db_port"])?$connection_array["db_port"]:"";
         }
         return $this;
+    }
+    
+    /**
+     * 過濾要進資料庫的字串
+     * @param string $str
+     * @return string
+     */
+    public function dataFilter(string $str){
+        return trim(stripslashes(addslashes(htmlspecialchars($str, ENT_QUOTES, 'UTF-8'))));
     }
     
     /**
