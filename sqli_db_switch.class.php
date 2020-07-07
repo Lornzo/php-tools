@@ -200,7 +200,6 @@ class sqli_db_switch{
     public function getPagination(){
         $result = array("start"=>1,"end"=>1);
         if($this->_limit && $this->_limit_total > 1 && $this->_limit_page_window >1){
-            
         }
         return $result;
     }
