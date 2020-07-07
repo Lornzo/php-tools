@@ -74,6 +74,11 @@ class sqli_db_switch{
      */
     protected $_limit_page = 1;
     
+    /**
+     * @var int 在$_limit為true的時候，顯示出前後的頁碼 
+     */
+    protected $_limit_page_window = 10;
+    
     public function __construct() {
     }
     
@@ -179,6 +184,23 @@ class sqli_db_switch{
             $data = $this->setSelect(array("COUNT(*) AS total"))->fetchData($condition, $back_strings);
             $result = !empty((int)$data["total"])?(int)$data["total"]:1;
             $this->_select = $select_buffer;
+        }
+        return $result;
+    }
+    
+    /**
+     * 設定一次要顯示的頁碼數
+     * @param int $size
+     * @return $this
+     */
+    public function setWindowSize(int $size){
+        $this->_limit_page_window = $size > 0 ? $size:10;return $this;
+    }
+    
+    public function getPagination(){
+        $result = array("start"=>1,"end"=>1);
+        if($this->_limit && $this->_limit_total > 1 && $this->_limit_page_window >1){
+            
         }
         return $result;
     }
