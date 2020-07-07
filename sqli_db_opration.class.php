@@ -35,8 +35,6 @@ class sqli_db_opration extends sqli_db_switch{
     public function showTables(){
         $db_tables = mysqli_fetch_arr($this->doQuery("SHOW TABLES;"),MYSQLI_ASSOC);
         $result = array();
-
-
     }
 }
 ?>
