@@ -1,6 +1,8 @@
 <?php
 /**
- * 
+ * 基於mysqli開發的MySQL讀寫物件
+ * @author Lornzo Lee(李赤兔) <a6288678@hotmail.com>
+ * @version 2020.7.7
  */
 class sqli_db_switch{
     
@@ -360,10 +362,10 @@ class sqli_db_switch{
      * @param string $db_pass
      * @param string $db_charset
      * @param string $db_port
-     * @return type
+     * @return $this
      */
     public function setConnection(string $db_host,string $db_name,string $db_user,string $db_pass,string $db_charset="utf8",string $db_port = ""){
-        return $this->setConnectionByArray(array("db_host"=>$db_host,"db_name"=>$db_name,"db_user"=>$db_user,"db_pass"=>$db_pass,"db_port"=>$db_port,"db_charset"=>$db_charset));
+        $this->setConnectionByArray(array("db_host"=>$db_host,"db_name"=>$db_name,"db_user"=>$db_user,"db_pass"=>$db_pass,"db_port"=>$db_port,"db_charset"=>$db_charset));return $this;
     }
 
     /**
