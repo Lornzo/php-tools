@@ -262,6 +262,43 @@ class sqli_db_switch{
     }
     
     /**
+     * 更新資料
+     * @param array $update
+     * @param array $condition
+     * @return type
+     */
+    public function updateData(array $update,array $condition = array()){
+        return !empty($this->doQuery($this->getUpdateQuery($update, $condition)))?mysqli_affected_rows($this->_conn):0;
+    }
+    
+        /**
+     * 取得sql的Update組合語法
+     * @param array $update
+     * @param array $condition
+     * @return string
+     */
+    public function getUpdateQuery(array $update,array $condition = array()){
+        $result = "";
+        if(!empty($this->_table) && !empty($update)){
+            $buffer = array();
+            foreach($update as $col => $val){$buffer[] = $col."='".$val."'";}
+            $result = "UPDATE ".$this->_table." SET ". implode(",", $buffer);
+            $result .= !empty($condition)?" WHERE ".implode(" AND ", $condition):"";
+            $result .= ";";
+        }
+        return $result;
+    }
+    
+    /**
+     * 刪除資料
+     * @param array $condition 不可為空，不然的話直接用TRUNCATE就好了。
+     * @return int 刪除的數量
+     */
+    public function deleteData(array $condition){
+        return (empty($condition) || empty($this->_table))?0:!empty($this->doQuery("DELETE FROM ".$this->_table." WHERE ".implode(" AND ", $condition).";"))?mysqli_affected_rows($this->_conn):0;
+    }
+    
+    /**
      * 取得Mysql Select的語法字串
      * @param array $condition
      * @param array $back_strings
