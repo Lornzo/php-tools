@@ -26,15 +26,35 @@ class sqli_db_opration extends sqli_db_switch{
         return !empty($this->_table)?$this->doQuery("DROP TABLE IF EXISTS ".$this->_table.";"):false;
     }
     
-    
-    public function showDatabases(){
-        
-        
+    /**
+     * 取得所有可以操作的資料庫
+     * @return array
+     */
+    public function getDatabases(){
+        $dbs = mysqli_fetch_all($this->doQuery("SHOW DATABASES;"),MYSQLI_ASSOC);
+        $result = array();
+        if(!empty($dbs)){foreach($dbs as $db){if(!empty($db)){foreach($db as $name){$result[] = $name;}}}}
+        return $result;
     }
     
-    public function showTables(){
-        $db_tables = mysqli_fetch_arr($this->doQuery("SHOW TABLES;"),MYSQLI_ASSOC);
+    /**
+     * 取得所有資料庫裡面的表名
+     * @param bool $use_db_as_key
+     * @return array
+     */
+    public function getTables(){
+        $db_tables = mysqli_fetch_all($this->doQuery("SHOW TABLES;"),MYSQLI_ASSOC);
         $result = array();
+        if(!empty($db_tables)){
+            foreach($db_tables as $tables){
+                if(!empty($tables)){
+                    foreach($tables as $db_name => $table_name){
+                            $result[] = $table_name;
+                    }
+                }
+            }
+        }
+        return $result;
     }
 }
 ?>
