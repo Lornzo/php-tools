@@ -11,6 +11,38 @@ if(!class_exists("sqli_db_switch")){require(__DIR__."sqli_db_switch.class.php");
 class sqli_db_opration extends sqli_db_switch{
     
     /**
+     * @var bool 在創建table的時候是否要加入TABLE IF NOT EXISTS 
+     */
+    protected $_if_table_not_exists = true;
+    
+    protected $_create_table_cols = array();
+    
+    public function addColWithInt(string $cols_name,int $length,string $type="",bool $is_null=false){
+        $result = "`".$cols_name."` int(".$length.")";
+        $result .= !empty($type)?" ".$type:"";
+        "NOT NULL AUTO_INCREMENT";
+    }
+    
+    public function createTable(string $table_comment){
+        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
+  `no` int(11) NOT NULL AUTO_INCREMENT,
+  `lornzo` varchar(255) NOT NULL,
+  PRIMARY KEY (`no`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
+COMMIT;";
+        
+        
+        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
+  `no` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `tesst` int(11) UNSIGNED DEFAULT 0 COMMENT '123',
+  `lornzo` varchar(255) NOT NULL,
+  PRIMARY KEY (`no`)
+) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
+COMMIT;
+";
+    }
+    
+    /**
      * 清空整張資料表
      * @return bool
      */
