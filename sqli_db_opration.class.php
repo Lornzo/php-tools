@@ -1,6 +1,12 @@
 <?php
 if(!class_exists("sqli_db_switch")){require(__DIR__."sqli_db_switch.class.php");}
-
+class sqli_cols{
+    public $col_name = "";
+    public $col_type = "";
+    public $col_length = "";
+    public $col_default = "";
+    public $col_charset = "";
+}
 
 /**
  * 繼承自sqli_db_switch開發的MySQL操作物件，內含比較危險的操作Function，請小心使用
@@ -17,6 +23,13 @@ class sqli_db_opration extends sqli_db_switch{
     
     protected $_create_table_cols = array();
     
+    /**
+     * 
+     * @param string $cols_name 欄位名稱
+     * @param int $length 欄位資料長度
+     * @param string $type 可以為空或是BINARY , UNSIGNED
+     * @param bool $is_null
+     */
     public function addColWithInt(string $cols_name,int $length,string $type="",bool $is_null=false){
         $result = "`".$cols_name."` int(".$length.")";
         $result .= !empty($type)?" ".$type:"";
