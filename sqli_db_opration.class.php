@@ -78,10 +78,13 @@ class sqli_cols{
     }
     
     public function getColTypeLength(string $type_name="",string $col_attr=""){
-        
-        $types = array(
-            "tinyint"=>array(),"smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
-        
+        switch ($col_attr){
+            case "":
+                break;
+            default:
+                $types = array("tinyint"=>array(),"smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
+                break;
+        }
         return empty($type_name)?$types:!empty($types[$type_name])?$types[$type_name]:array();
     }
 }
