@@ -1,11 +1,89 @@
 <?php
 if(!class_exists("sqli_db_switch")){require(__DIR__."sqli_db_switch.class.php");}
+
 class sqli_cols{
     public $col_name = "";
     public $col_type = "";
-    public $col_length = "";
+    public $col_length = 0;
     public $col_default = "";
-    public $col_charset = "";
+    public $col_charset = "utf8";
+    public $col_attributes = "";
+    public $col_is_null = false;
+    public $col_comment = "";
+    
+    /**
+     * 重置所有的變數
+     * @return $this
+     */
+    public function reset(){
+        $this->col_name = "";
+        $this->col_type = "";
+        $this->col_length = 0;
+        $this->col_default = "";
+        $this->col_charset = "utf8";
+        $this->col_attributes = "";
+        $this->col_is_null = false;
+        $this->col_comment = "";
+        return $this;
+    }
+    
+    /**
+     * 1.設定欄位名稱
+     * @param string $name 欄位名稱
+     * @return $this
+     */
+    public function setColName(string $name){
+        $this->col_name = $name;return $this;
+    }
+    
+    /**
+     * 2.設定欄位的資料類別
+     * @param string $type
+     */
+    public function setColType(string $type){
+        $this->col_type = in_array($type,$this->getAllColType())?$type:"";return $this;
+    }
+    
+    /**
+     * 3.設定欄位屬性
+     * @param string $attr_name BINARY,UNSIGNED,UNSIGNED ZEROFILL,on update CURRENT_TIMESTAMP 四選一
+     * @return $this
+     */
+    public function setColAttributes(string $attr_name){
+        $this->col_attributes = in_array($attr_name,$this->getAllColType())?$attr_name:"";return $this;
+    }
+    
+    /**
+     * 4.設定欄位的長度
+     * @param mixed $length
+     */
+    public function setColLength($length ){
+        
+    }
+    
+    /**
+     * 取得所有的欄位屬性
+     * @return array
+     */
+    public function getAllColAttributes(){
+        return array("BINARY","UNSIGNED","UNSIGNED ZEROFILL","on update CURRENT_TIMESTAMP");
+    }
+    
+    /**
+     * 取得所有Mysql的欄位類別
+     * @return array
+     */
+    public function getAllColType(){
+        return array("tinyint","smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
+    }
+    
+    public function getColTypeLength(string $type_name="",string $col_attr=""){
+        
+        $types = array(
+            "tinyint"=>array(),"smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
+        
+        return empty($type_name)?$types:!empty($types[$type_name])?$types[$type_name]:array();
+    }
 }
 
 /**
