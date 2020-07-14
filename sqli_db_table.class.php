@@ -4,7 +4,17 @@
  * @author Lornzo Lee(李赤兔) <a6288678@hotmail.com>
  * @version 2020.7.7
  */
-class sqli_db_tables{
+class sqli_db_table{
+    /**
+     * @var string 這個Table的名稱
+     */
+    protected $_table_name = "";
+    
+    /**
+     * @var array 這一個Table的所有欄位及其屬性
+     */
+    public $_table_cols = array();
+    
     public $col_name = "";
     public $col_type = "";
     public $col_length = 0;
@@ -13,6 +23,16 @@ class sqli_db_tables{
     public $col_attributes = "";
     public $col_is_null = false;
     public $col_comment = "";
+    
+    /**
+     * 設定這一張Table的名稱
+     * @param string $table_name
+     */
+    public function setTableName(string $table_name){
+        $this->_table_name = $table_name;return $this;
+    }
+    
+    public function addTableCol(string $col_name,string $col_type){}
     
     /**
      * 重置所有的變數
