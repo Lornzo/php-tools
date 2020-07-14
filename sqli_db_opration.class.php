@@ -55,10 +55,10 @@ class sqli_cols{
     
     /**
      * 4.設定欄位的長度
-     * @param mixed $length
+     * @param mixed $length 是數字就設數字，enum的話就設array
      */
-    public function setColLength($length ){
-        
+    public function setColLength($length){
+        $this->col_length = is_array($length)?"'".implode("','", $length)."'":$length;
     }
     
     /**
@@ -77,12 +77,22 @@ class sqli_cols{
         return array("tinyint","smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
     }
     
+    /**
+     * 取出mysql資料型別的上限
+     * @param string $type_name
+     * @param string $col_attr
+     * @return type
+     */
     public function getColTypeLength(string $type_name="",string $col_attr=""){
         switch ($col_attr){
             case "":
                 break;
             default:
-                $types = array("tinyint"=>array(),"smallint","mediumint","int","bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
+                $types = array(
+                    "tinyint"=>array("length"=>"number","min"=> -128,"max" => 127),
+                    "smallint"=>array("length"=>"number","min"=>-32768,"max"=>32767),
+                    "mediumint"=>array("length"=>"number","min"=>-8388608,"max"=>8388607),
+                    "int"=>array("length"=>"number","min"=>"","max"),"bigint","decimal","float","double","real","bit","boolean","serial","date","datetime","timestamp","time","year","char","varchar","tinytext","text","mediumtext","longtext","binary","varbinary","tinyblob","blob","mediumblob","longblob","enum","set","geometry","point","linestring","polygon","multipoint","multilinestring","multipolygon","geometrycollection","json");
                 break;
         }
         return empty($type_name)?$types:!empty($types[$type_name])?$types[$type_name]:array();
