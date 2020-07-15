@@ -13,17 +13,58 @@ class sqli_db_table{
     /**
      * @var array 這一個Table的所有欄位及其屬性
      */
-    public $_table_cols = array();
+    protected $_table_cols = array();
     
-    public $col_name = "";
-    public $col_type = "";
-    public $col_length = 0;
-    public $col_default = "";
-    public $col_charset = "utf8";
-    public $col_attributes = "";
-    public $col_is_null = false;
-    public $col_comment = "";
+    /**
+     * @var string 要新增的位名稱 
+     */
+    protected $_add_col_name = "";
     
+    /**
+     * @var string 要新增的欄位類型，需符合MYSQL的欄位類型 
+     */
+    protected $_add_col_type = "";
+    
+    /**
+     * @var mixed 新增欄位的長度，是數值的話就寫入整數，是enum的話就寫入array 
+     */
+    protected $_add_col_length = "";
+    
+    /**
+     * @var string 新增欄位的預設值，可以為空
+     */
+    protected $_add_col_default = "";
+    
+    /**
+     * @var string 新增欄位的編碼，可為空 
+     */
+    protected $_add_col_charset = "";
+    
+    /**
+     * @var string 新增欄位的屬性，需符合MYSQL的欄位類型規範Like:"UNSIGNED","BINARY" 
+     */
+    protected $_add_col_attr = "";
+    
+    /**
+     * @var bool 新增欄位的值是否可以為null 
+     */
+    protected $_add_col_null = false;
+    
+    /**
+     * @var string 新增欄位的索引類型，需符合MySQL的欄位規範 
+     */
+    protected $_add_col_index = "";
+    
+    /**
+     * @var bool 這個欄位是否可以是AUTO_INCREMENT
+     */
+    protected $_add_col_ai = false;
+    
+    /**
+     * @var string 欄位備註 
+     */
+    protected $_add_col_comment = "";
+
     /**
      * 設定這一張Table的名稱
      * @param string $table_name
@@ -32,21 +73,31 @@ class sqli_db_table{
         $this->_table_name = $table_name;return $this;
     }
     
-    public function addTableCol(string $col_name,string $col_type){}
+    
+    
+    public function addColToTable(){
+        
+    }
+    
+    public function addColToTableByParameter(string $col_name,string $col_type,$col_length,string $col_default,string $col_charset,$col_attr,bool $col_is_null,string $col_index,bool $col_ai,string $col_comment){
+        return $this;
+    }
     
     /**
      * 重置所有的變數
      * @return $this
      */
-    public function reset(){
-        $this->col_name = "";
-        $this->col_type = "";
-        $this->col_length = 0;
-        $this->col_default = "";
-        $this->col_charset = "utf8";
-        $this->col_attributes = "";
-        $this->col_is_null = false;
-        $this->col_comment = "";
+    public function resetAddCol(){
+        $this->_add_col_name = "";
+        $this->_add_col_type = "";
+        $this->_add_col_length = "";
+        $this->_add_col_default = "";
+        $this->_add_col_charset = "";
+        $this->_add_col_attr = "";
+        $this->_add_col_null = false;
+        $this->_add_col_index = "";
+        $this->_add_col_ai = false;
+        $this->_add_col_comment="";
         return $this;
     }
     
