@@ -16,6 +16,11 @@ class sqli_db_table{
     protected $_table_cols = array();
     
     /**
+     * @var array 這一個Table的所有的索引
+     */
+    protected $_table_indexes = array();
+    
+    /**
      * @var string 要新增的位名稱 
      */
     protected $_add_col_name = "";
@@ -49,12 +54,7 @@ class sqli_db_table{
      * @var bool 新增欄位的值是否可以為null 
      */
     protected $_add_col_null = false;
-    
-    /**
-     * @var string 新增欄位的索引類型，需符合MySQL的欄位規範 
-     */
-    protected $_add_col_index = "";
-    
+
     /**
      * @var bool 這個欄位是否可以是AUTO_INCREMENT
      */
@@ -64,6 +64,8 @@ class sqli_db_table{
      * @var string 欄位備註 
      */
     protected $_add_col_comment = "";
+    
+
 
     /**
      * 設定這一張Table的名稱
@@ -73,13 +75,36 @@ class sqli_db_table{
         $this->_table_name = $table_name;return $this;
     }
     
-    
-    
-    public function addColToTable(){
-        
+    /**
+     * 新增欄位1. 設定要新增的欄位名稱
+     * @param string $name 欄位名稱
+     * @return $this
+     */
+    public function setAddColName(string $name){
+        $this->_add_col_name = $name;return $this;
     }
     
-    public function addColToTableByParameter(string $col_name,string $col_type,$col_length,string $col_default,string $col_charset,$col_attr,bool $col_is_null,string $col_index,bool $col_ai,string $col_comment){
+    public function addColToTable(){
+        $this->addColToTableByParameter($this->_add_col_name, $this->_add_col_type, $this->_add_col_length, $this->_add_col_default, $this->_add_col_charset, $this->_add_col_attr, $this->_add_col_null, $this->_add_col_ai, $this->_add_col_comment);
+        $this->resetAddCol();
+        return $this;
+    }
+    
+    /**
+     * 新增欄位到Table裡面
+     * @param string $col_name 欄位名稱
+     * @param string $col_type 類型
+     * @param mixed $col_length 長度/值
+     * @param string $col_default 預設值
+     * @param string $col_charset 編碼與排序
+     * @param string $col_attr 屬性
+     * @param bool $col_is_null 空值(NULL)
+     * @param bool $col_ai A_I
+     * @param string $col_comment 備註
+     * @return $this
+     */
+    public function addColToTableByParameter(string $col_name,string $col_type,$col_length,string $col_default,string $col_charset,string $col_attr,bool $col_is_null,bool $col_ai,string $col_comment){
+        $this->_table_cols[$col_name] = array("name"=>$col_name,"type"=>$col_type,"length"=>$col_length,"attribute"=>$col_attr,"is_null"=>$col_is_null,"default"=>$col_default,"auto_increment"=>$col_ai,"comment"=>$col_comment,"charset"=>$col_charset);
         return $this;
     }
     
@@ -95,7 +120,6 @@ class sqli_db_table{
         $this->_add_col_charset = "";
         $this->_add_col_attr = "";
         $this->_add_col_null = false;
-        $this->_add_col_index = "";
         $this->_add_col_ai = false;
         $this->_add_col_comment="";
         return $this;
