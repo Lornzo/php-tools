@@ -17,7 +17,6 @@ class sqli_db_opration extends sqli_db_switch{
      */
     public function createTable(sqli_db_table $table,bool $drop_exists_table=false){
         $table_data = $table->getTableWithArray();
-        print_r($table_data);
         if(!empty($table_data["name"]) && !empty($table_data["engine"]) && !empty($table_data["charset"])){
             if($drop_exists_table){$this->dropTable($table_data["name"]);}
             $query = "CREATE TABLE IF NOT EXISTS `".$table_data["name"]."`(";
