@@ -10,43 +10,53 @@ if(!class_exists("sqli_db_table")){require(__DIR__."./sqli_db_table.class.php");
  */
 class sqli_db_opration extends sqli_db_switch{
     
-    /**
-     * @var bool 在創建table的時候是否要加入TABLE IF NOT EXISTS 
-     */
-    protected $_if_table_not_exists = true;
-    
-    protected $_create_table_cols = array();
-    
-    /**
-     * 
-     * @param string $cols_name 欄位名稱
-     * @param int $length 欄位資料長度
-     * @param string $type 可以為空或是BINARY , UNSIGNED
-     * @param bool $is_null
-     */
-    public function addColWithInt(string $cols_name,int $length,string $type="",bool $is_null=false){
-        $result = "`".$cols_name."` int(".$length.")";
-        $result .= !empty($type)?" ".$type:"";
-        "NOT NULL AUTO_INCREMENT";
+    protected function _getColQuery(string $col_name,string $col_type,$col_length){
+        $query = "`".$col_name."` ".$col_type."(";
+        $query .= is_array($col_length)?"'".implode("','", $col_length)."'":$col_length;
+        $query .= ")";
+        
     }
     
-    public function createTable(string $table_comment){
-        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
-  `no` int(11) NOT NULL AUTO_INCREMENT,
-  `lornzo` varchar(255) NOT NULL,
-  PRIMARY KEY (`no`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
-COMMIT;";
+    protected function _buildCreateColsQuerys(array $table_data){
+        $result = array();
+        if(!empty($table_data["cols"])){
+            foreach($table_data["cols"] as $col_name => $cold_data){
+                $result[] = "";
+            }
+        }
+        return $resutl;
+    }
+    
+    public function createTable(sqli_db_table $table,bool $drop_exists_table=false){
+        $table_data = $table->getTableWithArray();
+        print_r($table_data);
+        if(!empty($table_data["name"]) && !empty($table_data["engine"]) && !empty($table_data["charset"])){
+            if($drop_exists_table){$this->dropTable($table_data["name"]);}
+            $query = "CREATE TABLE IF NOT EXISTS `".$table_data["name"]."`(";
+            $query .= implode(",", $this->_buildCreateColsQuerys($table));
+            $query .= ") ENGINE=".$table_data["engine"]." DEFAULT CHARSET=".$table_data["charset"];
+            $query .= !empty($table_data["comment"])?" COMMENT='".$table_data["comment"]."'":"";
+            $query .= ";";
+            $this->doQuerys(array($query,"COMMIT;"));
+        }
         
         
-        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
-  `no` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `tesst` int(11) UNSIGNED DEFAULT 0 COMMENT '123',
-  `lornzo` varchar(255) NOT NULL,
-  PRIMARY KEY (`no`)
-) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
-COMMIT;
-";
+//        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
+//  `no` int(11) NOT NULL AUTO_INCREMENT,
+//  `lornzo` varchar(255) NOT NULL,
+//  PRIMARY KEY (`no`)
+//) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
+//COMMIT;";
+//        
+//        
+//        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
+//  `no` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+//  `tesst` int(11) UNSIGNED DEFAULT 0 COMMENT '123',
+//  `lornzo` varchar(255) NOT NULL,
+//  PRIMARY KEY (`no`)
+//) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
+//COMMIT;
+//";
     }
     
     /**
@@ -59,10 +69,11 @@ COMMIT;
     
     /**
      * 刪除整張資料表
+     * @param string $table_name 要刪除的資料表名稱
      * @return bool
      */
-    public function dropTable(){
-        return !empty($this->_table)?$this->doQuery("DROP TABLE IF EXISTS ".$this->_table.";"):false;
+    public function dropTable(string $table_name){
+        return !empty($table_name)?$this->doQuery("DROP TABLE IF EXISTS ".$table_name.";"):false;
     }
     
     /**
