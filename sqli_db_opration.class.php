@@ -44,7 +44,7 @@ class sqli_db_opration extends sqli_db_switch{
                 $query .= !empty($col_data["is_null"])?" NULL":" NOT NULL";
                 $query .= !empty($col_data["default"])?" DEFAULT '".$col_data["default"]."'":"";
                 $query .= !empty($col_data["auto_increment"])?" AUTO_INCREMENT":"";
-                $query .= !empty($col_data["comment"])?" '".$col_data["comment"]."'":"";
+                $query .= !empty($col_data["comment"])?" COMMENT='".$col_data["comment"]."'":"";
                 $result[] = $query;
             }
         }
