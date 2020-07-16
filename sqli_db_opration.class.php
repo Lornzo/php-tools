@@ -24,7 +24,7 @@ class sqli_db_opration extends sqli_db_switch{
             $query .= ") ENGINE=".$table_data["engine"]." DEFAULT CHARSET=".$table_data["charset"];
             $query .= !empty($table_data["comment"])?" COMMENT='".$table_data["comment"]."'":"";
             $query .= ";";
-            $this->doQuerys(array($query,"COMMIT;"));
+            $this->doQuery($query);
         }
     }
     
