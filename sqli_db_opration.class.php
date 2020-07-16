@@ -9,54 +9,55 @@ if(!class_exists("sqli_db_table")){require(__DIR__."./sqli_db_table.class.php");
  * @version 2020.7.7
  */
 class sqli_db_opration extends sqli_db_switch{
-    
-    protected function _getColQuery(string $col_name,string $col_type,$col_length){
-        $query = "`".$col_name."` ".$col_type."(";
-        $query .= is_array($col_length)?"'".implode("','", $col_length)."'":$col_length;
-        $query .= ")";
-        
-    }
-    
-    protected function _buildCreateColsQuerys(array $table_data){
-        $result = array();
-        if(!empty($table_data["cols"])){
-            foreach($table_data["cols"] as $col_name => $cold_data){
-                $result[] = "";
-            }
-        }
-        return $resutl;
-    }
-    
+
+    /**
+     * 建表用的Function
+     * @param sqli_db_table $table MySQL資料表的物件
+     * @param bool $drop_exists_table 如果已在MySQL存在相同表名的話，要不要先把前面那個表給刪掉
+     */
     public function createTable(sqli_db_table $table,bool $drop_exists_table=false){
         $table_data = $table->getTableWithArray();
         print_r($table_data);
         if(!empty($table_data["name"]) && !empty($table_data["engine"]) && !empty($table_data["charset"])){
             if($drop_exists_table){$this->dropTable($table_data["name"]);}
             $query = "CREATE TABLE IF NOT EXISTS `".$table_data["name"]."`(";
-            $query .= implode(",", $this->_buildCreateColsQuerys($table));
+            $query .= implode(",", $this->_buildCreateColsQuerys($table_data));
             $query .= ") ENGINE=".$table_data["engine"]." DEFAULT CHARSET=".$table_data["charset"];
             $query .= !empty($table_data["comment"])?" COMMENT='".$table_data["comment"]."'":"";
             $query .= ";";
             $this->doQuerys(array($query,"COMMIT;"));
         }
-        
-        
-//        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
-//  `no` int(11) NOT NULL AUTO_INCREMENT,
-//  `lornzo` varchar(255) NOT NULL,
-//  PRIMARY KEY (`no`)
-//) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
-//COMMIT;";
-//        
-//        
-//        "CREATE TABLE IF NOT EXISTS `lornzo_test` (
-//  `no` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
-//  `tesst` int(11) UNSIGNED DEFAULT 0 COMMENT '123',
-//  `lornzo` varchar(255) NOT NULL,
-//  PRIMARY KEY (`no`)
-//) ENGINE=MyISAM DEFAULT CHARSET=utf8 COMMENT='測試資料表';
-//COMMIT;
-//";
+    }
+    
+    /**
+     * (未完成)把sqli_db_table物件裡面的欄位，組合成MySQL Query (但是還無法指用編碼)
+     * @param array $table_data
+     * @return array
+     */
+    protected function _buildCreateColsQuerys(array $table_data){
+        $result = array();
+        if(!empty($table_data["cols"])){
+            foreach($table_data["cols"] as $col_name => $col_data){
+                $query = "`".$col_name."` ".$col_data["type"]."(";
+                $query .= is_array($col_data["length"])?"'".implode("','", $col_data["length"])."'":$col_data["length"];
+                $query .= ")";
+                $query .= !empty($col_data["attribute"])?" ".$col_data["attribute"]:"";
+                $query .= !empty($col_data["is_null"])?" NULL":" NOT NULL";
+                $query .= !empty($col_data["default"])?" DEFAULT '".$col_data["default"]."'":"";
+                $query .= !empty($col_data["auto_increment"])?" AUTO_INCREMENT":"";
+                $query .= !empty($col_data["comment"])?" '".$col_data["comment"]."'":"";
+                $result[] = $query;
+            }
+        }
+        if(!empty($table_data["keys"]["PRIMARY"])){
+            $result[] = "PRIMARY KEY (`".implode("`,`", $table_data["keys"]["PRIMARY"])."`)";
+        }
+        if(!empty($table_data["keys"]["UNIQUE"])){
+            foreach($table_data["keys"]["UNIQUE"] as $key_name => $keys){
+                $result[] = "UNIQUE KEY `".$key_name."` (`".implode("`,`", $keys)."`)";
+            }
+        }
+        return $result;
     }
     
     /**
