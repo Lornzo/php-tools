@@ -17,7 +17,6 @@ class sqli_db_opration extends sqli_db_switch{
      */
     public function createTable(sqli_db_table $table,bool $drop_exists_table=false){
         $table_data = $table->getTableWithArray();
-        print_r($table_data);
         if(!empty($table_data["name"]) && !empty($table_data["engine"]) && !empty($table_data["charset"])){
             if($drop_exists_table){$this->dropTable($table_data["name"]);}
             $query = "CREATE TABLE IF NOT EXISTS `".$table_data["name"]."`(";
@@ -25,7 +24,7 @@ class sqli_db_opration extends sqli_db_switch{
             $query .= ") ENGINE=".$table_data["engine"]." DEFAULT CHARSET=".$table_data["charset"];
             $query .= !empty($table_data["comment"])?" COMMENT='".$table_data["comment"]."'":"";
             $query .= ";";
-            $this->doQuerys(array($query,"COMMIT;"));
+            $this->doQuery($query);
         }
     }
     
@@ -45,7 +44,7 @@ class sqli_db_opration extends sqli_db_switch{
                 $query .= !empty($col_data["is_null"])?" NULL":" NOT NULL";
                 $query .= !empty($col_data["default"])?" DEFAULT '".$col_data["default"]."'":"";
                 $query .= !empty($col_data["auto_increment"])?" AUTO_INCREMENT":"";
-                $query .= !empty($col_data["comment"])?" '".$col_data["comment"]."'":"";
+                $query .= !empty($col_data["comment"])?" COMMENT '".$col_data["comment"]."'":"";
                 $result[] = $query;
             }
         }
