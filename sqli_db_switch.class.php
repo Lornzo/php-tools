@@ -306,13 +306,13 @@ class sqli_db_switch{
      * @param array $back_strings
      * @return string
      */
-    public function getSelectString(array $condition = array(), array $back_strings=array()){
+    public function getSelectString(array $condition = array(), array $back_strings=array(),bool $semicolon=true){
         $result = "";
         if(!empty($this->_table)){
             $result = "SELECT ".$this->_select." FROM ".$this->_table;
             $result.= !empty($condition)?" WHERE ".implode(" AND ", $condition):"";
             $result.= !empty($back_strings)?" ".implode(" ", $back_strings):"";
-            $result .= ";";
+            $result .= $semicolon?";":"";
         }
         return $result;
     }
