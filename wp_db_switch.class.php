@@ -24,82 +24,66 @@ class wp_db_switch extends sqli_db_switch{
     
     /**
      * @取出文章
-     * @param array $order_by
+     * @param array $order_by 排序
      * @param string $post_status
      * @return type
      */
     public function getPosts(array $order_by = array() , string $post_status = "publish"){
-        
-        $result = array();
-        
+
+        /*一次讀取的MySql語句*/
         $querys = array();
+        
+        /*先把目前的Table設定存起來*/
+        $table_buffer = $this->_table;
         
         /*會需要用id來當索引的就要先做*/
 
-        /*取出文章內容本體的MySQL語句*/
+        /*取出的文章ID*/
+        $posts_id = array();
+        
+        /*文章的作者id*/
+        $posts_author_id = array();
+        
+        /*先取出文章本體，然後加以整理*/
         $condition = array();
         $condition[] = "post_type='post'";
         $condition[] = "post_status='".$this->dataFilter($post_status)."'";
         
-        /**
-         * @var string 提取條件下文章的MySql query string
-         */
-        $article_query = $this->setTable("wp_posts")->getSelectString($condition,$order_by);
+        /*文章本體*/
+        $posts = $this->setTable($this->_wp_table_pre."posts")->listData($condition, $order_by);
+        unset($condition);
         
-        /**
-         * @var string 提取有被拿出來的文章ID(MySql Query String)，要拿來取出精選圖片用的
-         */
-        $article_id_query = $this->setTable("wp_posts")->setSelect(array("ID"))->getSelectString($condition, $order_by, false);
+        $result = array();
         
-        /**
-         * @var string 提取有被拿出來的作者ID(MySql Query String)，要拿來取出作者名字用的
-         */
-        $article_author_query = $this->setTable("wp_posts")->setSelect(array("DISTINCT post_author"))->getSelectString($condition,$order_by,false);
+        if(!empty($posts)){
+            
+            foreach($posts as $post){
+                $posts_id[] = $post["ID"];
+                $posts_author_id[] = $post["post_author"];
+            }
+            /*0. 取出有出現的作者名字*/
+            $querys[] = $this->setTable($this->_wp_table_pre."users")->setSelect(array("ID","display_name"))->getSelectString(array("ID IN ('". implode("','", $posts_author_id)."')"));
 
-        /*select歸零*/
-        $this->setSelect(array());
-        
-        /*0. 取出有出現的作者名字*/
-        $condition = array();
-        $condition[] = "ID IN (".$article_author_query.")";
-        $querys[] = $this->setTable("wp_users")->setSelect(array("ID","display_name"))->getSelectString($condition);
-        
-        /*1.取出文章的keywords tag 資料 - wp_terms*/
-        $condition = array();
-        $condition[] = "object_id IN (".$article_id_query.")";
-        $article_tags_relation_id = $this->setTable("wp_term_relationships")->setSelect(array("term_taxonomy_id"))->getSelectString($condition,array("ORDER BY term_order ASC"),false);
-        
-        $condition = array();
-        $condition[] = "taxonomy='post_tag'";
-        $condition[] = "term_taxonomy_id IN (".$article_tags_relation_id.")";
-        $article_term_taxonomy_id = $this->setTable("wp_term_taxonomy")->setSelect(array("term_id"))->getSelectString($condition,array(),false);
-        
-        $condition = array();
-        $condition[] = "term_id IN (".$article_term_taxonomy_id.")";
-        $querys[] =  $this->setTable("wp_terms")->setSelect(array())->getSelectString($condition);
+            /*1.取出文章的keywords tag 資料 - wp_terms*/
+            $article_tags_relation_id = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array("term_taxonomy_id"))->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"),array("ORDER BY term_order ASC"),false);
+            $article_term_taxonomy_id = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array("term_id"))->getSelectString(array("taxonomy='post_tag'","term_taxonomy_id IN (".$article_tags_relation_id.")"),array(),false);
 
-        /*2. 取出keywords tag類型表 - wp_term_taxonomy*/
-        $condition = array();
-        $condition[] = "taxonomy = 'post_tag'";
-        $condition[] = "term_id IN (".$article_term_taxonomy_id.")";
-        $querys[] = $this->setTable("wp_term_taxonomy")->setSelect(array())->getSelectString($condition);
-        
-        /*3. 取出keywords tag的關聯表 0 wp_term_relationships*/
-        $condition = array();
-        $condition[] = "object_id IN (".$article_id_query.")";
-        $querys[] = $this->setTable("wp_term_relationships")->setSelect(array())->getSelectString($condition);
-        
-        
-        /*4.取出文章的精選圖片*/
-        $condition = array();
-        $condition[] = "post_type='attachment'";
-        $condition[] = "post_parent IN (".$article_id_query.")";
-        $querys[] = $this->setTable("wp_posts")->setSelect(array())->getSelectString($condition,$order_by);
+            $querys[] =  $this->setTable($this->_wp_table_pre."terms")->setSelect(array())->getSelectString(array( "term_id IN (".$article_term_taxonomy_id.")"));
 
-        /*最後取出文章本體*/
-        $querys[] = $article_query;
+            /*2. 取出keywords tag類型表 - wp_term_taxonomy*/
+            $querys[] = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array())->getSelectString(array("taxonomy = 'post_tag'","term_id IN (".$article_term_taxonomy_id.")"));
 
-        return $this->_combineWpPostsInfo($this->doQuerys($querys,true));
+            /*3. 取出keywords tag的關聯表 0 wp_term_relationships*/
+            $querys[] = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array())->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"));
+
+            /*4.取出文章的精選圖片*/
+            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString(array("post_type='attachment'","post_parent IN ('". implode("','", $posts_id)."')"));
+
+            $result = $this->_combineWpPostsInfo($posts , $this->doQuerys($querys,true));
+        }
+        $this->_table = $table_buffer;
+
+        return $result;
     }
     
     /**
@@ -107,7 +91,8 @@ class wp_db_switch extends sqli_db_switch{
      * @param array $sqli_querys_datas
      * @return array
      */
-    protected function _combineWpPostsInfo(array $sqli_querys_datas){
+    protected function _combineWpPostsInfo(array $posts,array $sqli_querys_datas){
+
         $result = array();
 
         $authors = array();
@@ -119,6 +104,7 @@ class wp_db_switch extends sqli_db_switch{
         if(!empty($sqli_querys_datas)){
             foreach($sqli_querys_datas as $datas_chunk){
                 if(!empty($datas_chunk)){
+                    $datas_chunk[] = $posts;
                     foreach($datas_chunk as $section_no => $querys_sections){
                         if(!empty($querys_sections)){
                             foreach($querys_sections as  $data){
