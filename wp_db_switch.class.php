@@ -14,12 +14,40 @@ class wp_db_switch extends sqli_db_switch{
     protected $_wp_table_pre = "wp_";
     
     /**
+     * @var array 這一個網域的網址們，請把http還有https都放進去 
+     */
+    protected $_root_urls = array();
+    
+    /**
+     * @var string 根目錄路徑 
+     */
+    protected $_root_path = "";
+    
+    /**
      * 設定wordpress資料表的前綴
      * @param string $pre
      * @return $this
      */
     public function setWpTablePre(string $pre){
         $this->_wp_table_pre = $pre;return $this;
+    }
+    
+    /**
+     * 設定這個網域的所有網址，請把http還有https都放進去
+     * @param array $urls
+     * @return $this
+     */
+    public function setRootUrls(array $urls){
+        $this->_root_urls = $urls;return $this;
+    }
+    
+    /**
+     * 設定根目錄路徑
+     * @param string $root_path
+     * @return $this
+     */
+    public function setRootPath(string $root_path){
+        $this->_root_path = $root_path;return $this;
     }
     
     /**
@@ -76,7 +104,11 @@ class wp_db_switch extends sqli_db_switch{
             /*3. 取出keywords tag的關聯表 0 wp_term_relationships*/
             $querys[] = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array())->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"));
 
-            /*4.取出文章的精選圖片*/
+            /*4.取出文章的精選圖片的meta*/
+            $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString(array("post_type='attachment'","post_parent IN ('". implode("','", $posts_id)."')"),array(),false);
+            $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("meta_key='_wp_attachment_metadata'","post_id IN (".$pic_meta_condition.")"));
+            
+            /*5.取出文章的精選圖片的meta*/
             $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString(array("post_type='attachment'","post_parent IN ('". implode("','", $posts_id)."')"));
 
             $result = $this->_combineWpPostsInfo($posts , $this->doQuerys($querys,true));
@@ -101,6 +133,8 @@ class wp_db_switch extends sqli_db_switch{
         
         $taxonomys = array();
         
+        $images_meta = array();
+        
         if(!empty($sqli_querys_datas)){
             foreach($sqli_querys_datas as $datas_chunk){
                 if(!empty($datas_chunk)){
@@ -108,6 +142,8 @@ class wp_db_switch extends sqli_db_switch{
                     foreach($datas_chunk as $section_no => $querys_sections){
                         if(!empty($querys_sections)){
                             foreach($querys_sections as  $data){
+
+                                
                                 /*section no 跟放進去的query string 順序有關係*/
                                 switch($section_no){
                                     /*作者資料表*/
@@ -129,17 +165,27 @@ class wp_db_switch extends sqli_db_switch{
                                     case "3":
                                         if(!empty($taxonomys[$data["term_taxonomy_id"]])){
                                             $result[$data["object_id"]]["keywords"][$taxonomys[$data["term_taxonomy_id"]]["term_id"]] = $taxonomys[$data["term_taxonomy_id"]]["term_name"];
-                                            $result[$data["object_id"]]["keywords_info"][$data["term_taxonomy_id"]] = $taxonomys[$data["term_taxonomy_id"]];
+//                                            $result[$data["object_id"]]["keywords_info"][$data["term_taxonomy_id"]] = $taxonomys[$data["term_taxonomy_id"]];
                                         }
                                         break;
-                                    /*精選圖片*/
+                                    /*images meta*/
                                     case "4":
-                                        $result[$data["post_parent"]]["show_pic"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"]);
+                                        $images_meta[$data["post_id"]] = $data["meta_value"];
+                                        break;
+                                    /*精選圖片*/
+                                    case "5":
+                                        if(!empty($images_meta[$data["ID"]])){
+                                            $image_meta = unserialize($images_meta[$data["ID"]]);
+//                                            print_r(pathinfo($data["guid"]));exit();
+                                            $result[$data["post_parent"]]["image"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"],"meta"=> unserialize($images_meta[$data["ID"]]));
+                                        }
                                         break;
                                     /*文章本體*/
                                     default:
-                                        $result[$data["ID"]]["post_author_name"] = !empty($authors[$data["post_author"]])?$authors[$data["post_author"]]:"";
-                                        $result[$data["ID"]]["data"] = $data;
+                                        $result[$data["ID"]]["headline"] = $data["post_title"];
+                                        $result[$data["ID"]]["description"] = $data["post_excerpt"];
+                                        $result[$data["ID"]]["datepublished"] = $data["post_date"];
+                                        $result[$data["ID"]]["author"] = !empty($authors[$data["post_author"]])?$authors[$data["post_author"]]:"";
                                         break;
                                 }
                             }
