@@ -14,16 +14,6 @@ class wp_db_switch extends sqli_db_switch{
     protected $_wp_table_pre = "wp_";
     
     /**
-     * @var array 這一個網域的網址們，請把http還有https都放進去 
-     */
-    protected $_root_urls = array();
-    
-    /**
-     * @var string 根目錄路徑 
-     */
-    protected $_root_path = "";
-    
-    /**
      * 設定wordpress資料表的前綴
      * @param string $pre
      * @return $this
@@ -33,25 +23,7 @@ class wp_db_switch extends sqli_db_switch{
     }
     
     /**
-     * 設定這個網域的所有網址，請把http還有https都放進去
-     * @param array $urls
-     * @return $this
-     */
-    public function setRootUrls(array $urls){
-        $this->_root_urls = $urls;return $this;
-    }
-    
-    /**
-     * 設定根目錄路徑
-     * @param string $root_path
-     * @return $this
-     */
-    public function setRootPath(string $root_path){
-        $this->_root_path = $root_path;return $this;
-    }
-    
-    /**
-     * @取出文章
+     * @取出文章列表
      * @param array $order_by 排序
      * @param string $post_status
      * @return type
@@ -142,8 +114,6 @@ class wp_db_switch extends sqli_db_switch{
                     foreach($datas_chunk as $section_no => $querys_sections){
                         if(!empty($querys_sections)){
                             foreach($querys_sections as  $data){
-
-                                
                                 /*section no 跟放進去的query string 順序有關係*/
                                 switch($section_no){
                                     /*作者資料表*/
@@ -157,8 +127,9 @@ class wp_db_switch extends sqli_db_switch{
                                     /*wp_term_taxonomy*/
                                     case "2":
                                         if(!empty($terms[$data["term_id"]])){
-                                            $taxonomys[$data["term_taxonomy_id"]] = $data;
-                                            $taxonomys[$data["term_taxonomy_id"]]["term_name"] = $terms[$data["term_id"]]["name"];
+//                                            $taxonomys[$data["term_taxonomy_id"]] = $data;
+//                                            $taxonomys[$data["term_taxonomy_id"]]["term_name"] = $terms[$data["term_id"]]["name"];
+                                            $taxonomys[$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"]);
                                         }
                                         break;
                                     /*wp_term_relationships*/
@@ -175,9 +146,14 @@ class wp_db_switch extends sqli_db_switch{
                                     /*精選圖片*/
                                     case "5":
                                         if(!empty($images_meta[$data["ID"]])){
+                                            $image_dir = pathinfo($data["guid"],PATHINFO_DIRNAME);
                                             $image_meta = unserialize($images_meta[$data["ID"]]);
-//                                            print_r(pathinfo($data["guid"]));exit();
                                             $result[$data["post_parent"]]["image"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"],"meta"=> unserialize($images_meta[$data["ID"]]));
+                                            $result[$data["post_parent"]]["image"] = array("alt"=>$data["post_content"],"title"=>$data["post_title"]);
+                                            $result[$data["post_parent"]]["image"]["origin"] = array("src"=>$data["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]);
+                                            if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
+                                                $result[$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
+                                            }}
                                         }
                                         break;
                                     /*文章本體*/
