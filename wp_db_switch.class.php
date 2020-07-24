@@ -153,7 +153,8 @@ class wp_db_switch extends sqli_db_switch{
                                             $result[$data["post_parent"]]["image"]["origin"] = array("src"=>$data["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]);
                                             if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
                                                 $result[$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
-                                            }}
+                                                $result[$data["post_parent"]]["image"]["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
+                                            }ksort($result[$data["post_parent"]]["image"]["srcset"]);}
                                         }
                                         break;
                                     /*文章本體*/
