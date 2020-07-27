@@ -22,6 +22,22 @@ class wp_db_switch extends sqli_db_switch{
         $this->_wp_table_pre = $pre;return $this;
     }
     
+    public function getPost(string $post_id){
+        $result = array();
+        
+        /*取出文章本體*/
+        $condition = array();
+        $condition[] = "ID='".(int)$post_id."'";
+        $condition[] = "post_date <= '".date("Y-m-d H:i:s")."'";
+        $condition[] = "post_status = 'publish'";
+        $condition[] = "post_type='post'";
+        $post = $this->setTable($this->_wp_table_pre."posts")->fetchData($condition);
+        if(!empty($post)){
+            
+        }
+        return $result;
+    }
+    
     /**
      * @取出文章列表
      * @param array $order_by 排序
