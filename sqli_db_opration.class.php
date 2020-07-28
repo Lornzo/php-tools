@@ -37,9 +37,12 @@ class sqli_db_opration extends sqli_db_switch{
         $result = array();
         if(!empty($table_data["cols"])){
             foreach($table_data["cols"] as $col_name => $col_data){
-                $query = "`".$col_name."` ".$col_data["type"]."(";
-                $query .= is_array($col_data["length"])?"'".implode("','", $col_data["length"])."'":$col_data["length"];
-                $query .= ")";
+                $query = "`".$col_name."` ".$col_data["type"];
+                if(!empty($col_data["length"])){
+                    $query .= "(";
+                    $query .= is_array($col_data["length"])?"'".implode("','", $col_data["length"])."'":$col_data["length"];
+                    $query .= ")";
+                }
                 $query .= !empty($col_data["attribute"])?" ".$col_data["attribute"]:"";
                 $query .= !empty($col_data["is_null"])?" NULL":" NOT NULL";
                 $query .= !empty($col_data["default"])?" DEFAULT '".$col_data["default"]."'":"";
