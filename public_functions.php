@@ -16,7 +16,7 @@ function dataFilter(string $str){
  * 根壉代號來發送http code
  * @param string $code
  */
-function setHeaderByCode(string $code){
+function sendHeaderByCode(string $code){
     $header_str = $code;
     switch($code){
         case "404":
