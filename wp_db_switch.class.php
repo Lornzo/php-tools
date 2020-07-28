@@ -22,6 +22,11 @@ class wp_db_switch extends sqli_db_switch{
         $this->_wp_table_pre = $pre;return $this;
     }
     
+    /**
+     * 取出單篇文章及相關資訊
+     * @param string $post_id 文章在表裡面的id
+     * @return array
+     */
     public function getPost(string $post_id){
         $result = array();
         
@@ -32,9 +37,90 @@ class wp_db_switch extends sqli_db_switch{
         $condition[] = "post_status = 'publish'";
         $condition[] = "post_type='post'";
         $post = $this->setTable($this->_wp_table_pre."posts")->fetchData($condition);
+
+        /*從其它張表取出文章會用到的其它資訊*/
         if(!empty($post)){
+            $post_id = $post["ID"];
+            $querys = array();
             
+            /*term_relationships - 取出對應的post id的taxonomy_id*/
+            $term_taxonomy_ids = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array("term_taxonomy_id"))->getSelectString(array("object_id='".$post_id."'"),array(),false);
+            
+            /*term_taxonomy*/
+            $term_ids_condition = array("term_taxonomy_id IN (".$term_taxonomy_ids.")");
+            $term_ids = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array("term_id"))->getSelectString($term_ids_condition,array(),false);
+            
+            /*0. 也要從term_taxonomy裡面取出資料，用在之後的分類用*/
+            $querys[] = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array())->getSelectString($term_ids_condition);
+            
+            /*1. 從terms取出名稱*/
+            $querys[] = $this->setTable($this->_wp_table_pre."terms")->setSelect(array())->getSelectString(array("term_id IN (".$term_ids.")"));
+            
+            /*2. 取出圖片本體*/
+            $pic_conditions = array("post_parent = '".$post_id."'","post_status='inherit'","post_type='attachment'","post_mime_type IN ('". implode("','", $this->_getWpImageMineTypes())."')");
+            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString($pic_conditions);
+            
+            /*3. 取出圖片的meta*/
+            $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString($pic_conditions,array(),false);
+            $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("post_id IN (".$pic_meta_condition.")","meta_key='_wp_attachment_metadata'"));
+
+            $post_datas = $this->doQuerys($querys, true);
+            
+            $term_types = array();
+            
+            $categorys = array();
+            $tags = array();
+            $images = array();
+            
+            if(!empty($post_datas)){foreach($post_datas as$post_data_chunk){
+                if(!empty($post_data_chunk)){foreach($post_data_chunk as $section_id => $datas){
+                    if(!empty($datas)){foreach($datas as $data){
+                        switch($section_id){
+                            case "0":
+                                $term_types[$data["term_id"]] = $data;
+                                break;
+                            case "1":
+                                if(!empty($term_types[$data["term_id"]])){
+                                    if($term_types[$data["term_id"]]["taxonomy"] == "post_tag"){
+                                        $tags[$data["term_id"]] = $data["name"];
+                                    }else{
+                                        $categorys[$data["term_id"]] = $data;
+                                    }
+                                }
+                                break;
+                            case "2":
+                                $images[$data["ID"]] = array(
+                                    "title"=>$data["post_title"],
+                                    "alt"=>$data["post_content"],
+                                    "origin"=>array("src"=>$data["guid"])
+                                );
+                                break;
+                            case "3":
+                                if(!empty($images[$data["post_id"]])){
+                                    $image_dir = pathinfo($images[$data["post_id"]]["origin"]["src"],PATHINFO_DIRNAME);
+                                    $image_meta = unserialize($data["meta_value"]);
+                                    $images[$data["post_id"]]["origin"]["width"] = $image_meta["width"];
+                                    $images[$data["post_id"]]["origin"]["height"] = $image_meta["height"];
+                                    if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_index => $size_value){
+                                        $images[$data["post_id"]][$size_index] = array(
+                                            "src"=> $image_dir."/".$size_value["file"],
+                                            "width"=>$size_value["width"],
+                                            "height"=>$size_value["height"]
+                                        );
+                                    }}
+                                }
+                                break;
+                        }
+                    }}
+                }}
+            }}
+            $result = $post;
+            $result["images"] = $images;
+            $result["keywords"] = $tags;
+            $result["category"] = $categorys;
         }
+
+        print_r($result);
         return $result;
     }
     
@@ -93,12 +179,12 @@ class wp_db_switch extends sqli_db_switch{
             $querys[] = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array())->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"));
 
             /*4.取出文章的精選圖片的meta*/
-            $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString(array("post_type='attachment'","post_parent IN ('". implode("','", $posts_id)."')"),array(),false);
+            $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString(array("post_type='attachment'","post_mime_type IN ('". implode("','", $this->_getWpImageMineTypes())."')","post_parent IN ('". implode("','", $posts_id)."')"),array("GROUP BY post_parent"),false);
             $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("meta_key='_wp_attachment_metadata'","post_id IN (".$pic_meta_condition.")"));
             
-            /*5.取出文章的精選圖片的meta*/
-            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString(array("post_type='attachment'","post_parent IN ('". implode("','", $posts_id)."')"));
-
+            /*5.取出文章的精選圖片*/
+            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString(array("ID IN(".$pic_meta_condition.")"));
+            
             $result = $this->_combineWpPostsInfo($posts , $this->doQuerys($querys,true));
         }
         $this->_table = $table_buffer;
@@ -143,8 +229,6 @@ class wp_db_switch extends sqli_db_switch{
                                     /*wp_term_taxonomy*/
                                     case "2":
                                         if(!empty($terms[$data["term_id"]])){
-//                                            $taxonomys[$data["term_taxonomy_id"]] = $data;
-//                                            $taxonomys[$data["term_taxonomy_id"]]["term_name"] = $terms[$data["term_id"]]["name"];
                                             $taxonomys[$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"]);
                                         }
                                         break;
@@ -152,7 +236,6 @@ class wp_db_switch extends sqli_db_switch{
                                     case "3":
                                         if(!empty($taxonomys[$data["term_taxonomy_id"]])){
                                             $result[$data["object_id"]]["keywords"][$taxonomys[$data["term_taxonomy_id"]]["term_id"]] = $taxonomys[$data["term_taxonomy_id"]]["term_name"];
-//                                            $result[$data["object_id"]]["keywords_info"][$data["term_taxonomy_id"]] = $taxonomys[$data["term_taxonomy_id"]];
                                         }
                                         break;
                                     /*images meta*/
@@ -188,6 +271,14 @@ class wp_db_switch extends sqli_db_switch{
             }
         }
         return $result;
+    }
+    
+    /**
+     * 取得wordpress裡面對於圖片mine type判斷的類型
+     * @return array
+     */
+    protected function _getWpImageMineTypes(){
+        return array("image/png","image/jpg","image/jpeg","image/gif");
     }
     
     /*下一個function*/
