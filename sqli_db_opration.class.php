@@ -1,6 +1,6 @@
 <?php
 if(!class_exists("sqli_db_switch")){require(__DIR__."/sqli_db_switch.class.php");}
-if(!class_exists("sqli_db_table")){require(__DIR__."./sqli_db_table.class.php");}
+if(!class_exists("sqli_db_table")){require(__DIR__."/sqli_db_table.class.php");}
 /**
  * 繼承自sqli_db_switch開發的MySQL操作物件，內含比較危險的操作Function，請小心使用
  * @requires sqli_db_switch.class.php 父類別物件
