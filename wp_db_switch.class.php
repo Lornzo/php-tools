@@ -120,7 +120,7 @@ class wp_db_switch extends sqli_db_switch{
             $result["category"] = $categorys;
         }
 
-        print_r($result);
+
         return $result;
     }
     
@@ -201,19 +201,15 @@ class wp_db_switch extends sqli_db_switch{
 
         $result = array(
             "authors"=>array(),
+            "taxonomys"=>array(),
             "categorys"=>array(),
             "tags"=>array(),
             "keywords"=>array(),
-            "article_count"=>0,
             "articles"=>array()
         );
 
-        $authors = array();
-        
         $terms = array();
-        
-        $taxonomys = array();
-        
+
         $images_meta = array();
         
         if(!empty($sqli_querys_datas)){
@@ -228,7 +224,6 @@ class wp_db_switch extends sqli_db_switch{
                                     /*作者資料表*/
                                     case "0":
                                         $result["authors"][$data["ID"]] = array("name"=>$data["display_name"]);
-                                        $authors[$data["ID"]] = $data["display_name"];
                                         break;
                                     /*$terms*/
                                     case "1":
@@ -236,30 +231,30 @@ class wp_db_switch extends sqli_db_switch{
                                         break;
                                     /*wp_term_taxonomy*/
                                     case "2":
-                                        if(!empty($terms[$data["term_id"]])){$taxonomys[$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"],"type"=>$data["taxonomy"]);}
+                                        if(!empty($terms[$data["term_id"]])){$result["taxonomys"][$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"],"type"=>$data["taxonomy"]);}
                                         break;
                                     /*wp_term_relationships*/
                                     case "3":
                                         $taxonomy_id = $data["term_taxonomy_id"];
-                                        if(!empty($taxonomys[$taxonomy_id])){
-                                            $taxonomy = $taxonomys[$taxonomy_id];
-                                            if(!empty($result["keywords"][$taxonomy["term_name"]])){
-                                                $result["keywords"][$taxonomy["term_name"]] = 1;
+                                        if(!empty($result["taxonomys"][$taxonomy_id])){
+                                            $taxonomy = $result["taxonomys"][$taxonomy_id];
+                                            $result["taxonomys"][$taxonomy_id] = $taxonomy;
+                                            
+                                            if(empty($result["keywords"][$taxonomy_id])){
+                                                $result["keywords"][$taxonomy_id] = 1;
                                             }else{
-                                                $result["keywords"][$taxonomy["term_name"]] += 1;
+                                                $result["keywords"][$taxonomy_id] += 1;
                                             }
                                             
                                             if($taxonomy["type"] == "category"){
-//                                                $result["articles"][$data["object_id"]]
+                                                $result["categorys"][$taxonomy_id] = array("term_id"=>$taxonomy["term_id"],"term_name"=>$taxonomy["term_name"]);
                                             }else{
-                                                $result["articles"][$data["object_id"]]["keywords"][$taxonomy["term_id"]] = $taxonomy["term_name"];
+                                                $result["tags"][$taxonomy_id] = array("term_id"=>$taxonomy["term_id"],"term_name"=>$taxonomy["term_name"]);
                                             }                                            
-                                            
                                         }
                                         break;
                                     /*images meta*/
                                     case "4":
-                                        print_r($result);
                                         $images_meta[$data["post_id"]] = $data["meta_value"];
                                         break;
                                     /*精選圖片*/
@@ -267,22 +262,21 @@ class wp_db_switch extends sqli_db_switch{
                                         if(!empty($images_meta[$data["ID"]])){
                                             $image_dir = pathinfo($data["guid"],PATHINFO_DIRNAME);
                                             $image_meta = unserialize($images_meta[$data["ID"]]);
-                                            $result[$data["post_parent"]]["image"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"],"meta"=> unserialize($images_meta[$data["ID"]]));
-                                            $result[$data["post_parent"]]["image"] = array("alt"=>$data["post_content"],"title"=>$data["post_title"]);
-                                            $result[$data["post_parent"]]["image"]["origin"] = array("src"=>$data["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]);
+                                            $result["articles"][$data["post_parent"]]["image"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"],"meta"=> unserialize($images_meta[$data["ID"]]));
+                                            $result["articles"][$data["post_parent"]]["image"] = array("alt"=>$data["post_content"],"title"=>$data["post_title"]);
+                                            $result["articles"][$data["post_parent"]]["image"]["origin"] = array("src"=>$data["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]);
                                             if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
-                                                $result[$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
-                                                $result[$data["post_parent"]]["image"]["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
-                                            }ksort($result[$data["post_parent"]]["image"]["srcset"]);}
+                                                $result["articles"][$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
+                                                $result["articles"][$data["post_parent"]]["image"]["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
+                                            }ksort($result["articles"][$data["post_parent"]]["image"]["srcset"]);}
                                         }
                                         break;
                                     /*文章本體*/
                                     default:
-                                        unset($terms,$taxonomys);
-                                        $result[$data["ID"]]["headline"] = $data["post_title"];
-                                        $result[$data["ID"]]["description"] = $data["post_excerpt"];
-                                        $result[$data["ID"]]["datepublished"] = $data["post_date"];
-                                        $result[$data["ID"]]["author"] = !empty($authors[$data["post_author"]])?$authors[$data["post_author"]]:"";
+                                        $result["articles"][$data["ID"]]["headline"] = $data["post_title"];
+                                        $result["articles"][$data["ID"]]["description"] = $data["post_excerpt"];
+                                        $result["articles"][$data["ID"]]["datepublished"] = $data["post_date"];
+                                        $result["articles"][$data["ID"]]["author"] = $data["post_author"];
                                         break;
                                 }
                             }
@@ -291,6 +285,8 @@ class wp_db_switch extends sqli_db_switch{
                 }
             }
         }
+        if(!empty($result["keywords"])){arsort($result["keywords"]);}
+        unset($terms,$images_meta);
         return $result;
     }
     
