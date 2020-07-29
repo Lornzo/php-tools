@@ -168,12 +168,12 @@ class wp_db_switch extends sqli_db_switch{
 
             /*1.取出文章的keywords tag 資料 - wp_terms*/
             $article_tags_relation_id = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array("term_taxonomy_id"))->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"),array("ORDER BY term_order ASC"),false);
-            $article_term_taxonomy_id = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array("term_id"))->getSelectString(array("taxonomy='post_tag'","term_taxonomy_id IN (".$article_tags_relation_id.")"),array(),false);
+            $article_term_taxonomy_id = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array("term_id"))->getSelectString(array("taxonomy IN ('post_tag','category')","term_taxonomy_id IN (".$article_tags_relation_id.")"),array(),false);
 
             $querys[] =  $this->setTable($this->_wp_table_pre."terms")->setSelect(array())->getSelectString(array( "term_id IN (".$article_term_taxonomy_id.")"));
 
             /*2. 取出keywords tag類型表 - wp_term_taxonomy*/
-            $querys[] = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array())->getSelectString(array("taxonomy = 'post_tag'","term_id IN (".$article_term_taxonomy_id.")"));
+            $querys[] = $this->setTable($this->_wp_table_pre."term_taxonomy")->setSelect(array())->getSelectString(array("taxonomy IN ('post_tag','category')","term_id IN (".$article_term_taxonomy_id.")"));
 
             /*3. 取出keywords tag的關聯表 0 wp_term_relationships*/
             $querys[] = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array())->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"));
@@ -199,7 +199,14 @@ class wp_db_switch extends sqli_db_switch{
      */
     protected function _combineWpPostsInfo(array $posts,array $sqli_querys_datas){
 
-        $result = array();
+        $result = array(
+            "authors"=>array(),
+            "categorys"=>array(),
+            "tags"=>array(),
+            "keywords"=>array(),
+            "article_count"=>0,
+            "articles"=>array()
+        );
 
         $authors = array();
         
@@ -220,6 +227,7 @@ class wp_db_switch extends sqli_db_switch{
                                 switch($section_no){
                                     /*作者資料表*/
                                     case "0":
+                                        $result["authors"][$data["ID"]] = array("name"=>$data["display_name"]);
                                         $authors[$data["ID"]] = $data["display_name"];
                                         break;
                                     /*$terms*/
@@ -228,18 +236,30 @@ class wp_db_switch extends sqli_db_switch{
                                         break;
                                     /*wp_term_taxonomy*/
                                     case "2":
-                                        if(!empty($terms[$data["term_id"]])){
-                                            $taxonomys[$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"]);
-                                        }
+                                        if(!empty($terms[$data["term_id"]])){$taxonomys[$data["term_taxonomy_id"]] = array("term_id"=>$data["term_id"],"term_name"=>$terms[$data["term_id"]]["name"],"type"=>$data["taxonomy"]);}
                                         break;
                                     /*wp_term_relationships*/
                                     case "3":
-                                        if(!empty($taxonomys[$data["term_taxonomy_id"]])){
-                                            $result[$data["object_id"]]["keywords"][$taxonomys[$data["term_taxonomy_id"]]["term_id"]] = $taxonomys[$data["term_taxonomy_id"]]["term_name"];
+                                        $taxonomy_id = $data["term_taxonomy_id"];
+                                        if(!empty($taxonomys[$taxonomy_id])){
+                                            $taxonomy = $taxonomys[$taxonomy_id];
+                                            if(!empty($result["keywords"][$taxonomy["term_name"]])){
+                                                $result["keywords"][$taxonomy["term_name"]] = 1;
+                                            }else{
+                                                $result["keywords"][$taxonomy["term_name"]] += 1;
+                                            }
+                                            
+                                            if($taxonomy["type"] == "category"){
+//                                                $result["articles"][$data["object_id"]]
+                                            }else{
+                                                $result["articles"][$data["object_id"]]["keywords"][$taxonomy["term_id"]] = $taxonomy["term_name"];
+                                            }                                            
+                                            
                                         }
                                         break;
                                     /*images meta*/
                                     case "4":
+                                        print_r($result);
                                         $images_meta[$data["post_id"]] = $data["meta_value"];
                                         break;
                                     /*精選圖片*/
@@ -258,6 +278,7 @@ class wp_db_switch extends sqli_db_switch{
                                         break;
                                     /*文章本體*/
                                     default:
+                                        unset($terms,$taxonomys);
                                         $result[$data["ID"]]["headline"] = $data["post_title"];
                                         $result[$data["ID"]]["description"] = $data["post_excerpt"];
                                         $result[$data["ID"]]["datepublished"] = $data["post_date"];
