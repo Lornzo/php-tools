@@ -276,7 +276,7 @@ class wp_db_switch extends sqli_db_switch{
                                         $result["articles"][$data["ID"]]["headline"] = $data["post_title"];
                                         $result["articles"][$data["ID"]]["description"] = $data["post_excerpt"];
                                         $result["articles"][$data["ID"]]["datepublished"] = $data["post_date"];
-                                        $result["articles"][$data["ID"]]["author"] = $data["post_author"];
+                                        $result["articles"][$data["ID"]]["author"] = !empty($result["authors"][$data["post_author"]])?$result["authors"][$data["post_author"]]["name"]:"";
                                         break;
                                 }
                             }
