@@ -55,15 +55,15 @@ class wp_db_switch extends sqli_db_switch{
             
             /*1. 從terms取出名稱*/
             $querys[] = $this->setTable($this->_wp_table_pre."terms")->setSelect(array())->getSelectString(array("term_id IN (".$term_ids.")"));
-            
-            /*2. 取出圖片本體*/
+
+            /*2. 取出圖片的meta*/
             $pic_conditions = array("post_parent = '".$post_id."'","post_status='inherit'","post_type='attachment'","post_mime_type IN ('". implode("','", $this->_getWpImageMineTypes())."')");
-            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString($pic_conditions);
-            
-            /*3. 取出圖片的meta*/
             $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString($pic_conditions,array(),false);
             $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("post_id IN (".$pic_meta_condition.")","meta_key='_wp_attachment_metadata'"));
 
+            /*3. 取出圖片本體*/
+            $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString($pic_conditions);
+            
             $post_datas = $this->doQuerys($querys, true);
             
             $term_types = array();
@@ -71,6 +71,8 @@ class wp_db_switch extends sqli_db_switch{
             $categorys = array();
             $tags = array();
             $images = array();
+            
+            $images_metas = array();
             
             if(!empty($post_datas)){foreach($post_datas as$post_data_chunk){
                 if(!empty($post_data_chunk)){foreach($post_data_chunk as $section_id => $datas){
@@ -89,25 +91,11 @@ class wp_db_switch extends sqli_db_switch{
                                 }
                                 break;
                             case "2":
-                                $images[$data["ID"]] = array(
-                                    "title"=>$data["post_title"],
-                                    "alt"=>$data["post_content"],
-                                    "origin"=>array("src"=>$data["guid"])
-                                );
+                                $images_metas[$data["post_id"]] = $data["meta_value"];
                                 break;
                             case "3":
-                                if(!empty($images[$data["post_id"]])){
-                                    $image_dir = pathinfo($images[$data["post_id"]]["origin"]["src"],PATHINFO_DIRNAME);
-                                    $image_meta = unserialize($data["meta_value"]);
-                                    $images[$data["post_id"]]["origin"]["width"] = $image_meta["width"];
-                                    $images[$data["post_id"]]["origin"]["height"] = $image_meta["height"];
-                                    if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_index => $size_value){
-                                        $images[$data["post_id"]][$size_index] = array(
-                                            "src"=> $image_dir."/".$size_value["file"],
-                                            "width"=>$size_value["width"],
-                                            "height"=>$size_value["height"]
-                                        );
-                                    }}
+                                if(!empty($images_metas[$data["ID"]])){
+                                    $images[$data["ID"]] = $this->_setupWpImageData($data, $images_metas[$data["ID"]]);
                                 }
                                 break;
                         }
@@ -119,8 +107,6 @@ class wp_db_switch extends sqli_db_switch{
             $result["keywords"] = $tags;
             $result["category"] = $categorys;
         }
-
-
         return $result;
     }
     
@@ -260,15 +246,7 @@ class wp_db_switch extends sqli_db_switch{
                                     /*精選圖片*/
                                     case "5":
                                         if(!empty($images_meta[$data["ID"]])){
-                                            $image_dir = pathinfo($data["guid"],PATHINFO_DIRNAME);
-                                            $image_meta = unserialize($images_meta[$data["ID"]]);
-                                            $result["articles"][$data["post_parent"]]["image"] = array("src"=>$data["guid"],"alt"=>$data["post_content"],"title"=>$data["post_title"],"meta"=> unserialize($images_meta[$data["ID"]]));
-                                            $result["articles"][$data["post_parent"]]["image"] = array("alt"=>$data["post_content"],"title"=>$data["post_title"]);
-                                            $result["articles"][$data["post_parent"]]["image"]["origin"] = array("src"=>$data["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]);
-                                            if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
-                                                $result["articles"][$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
-                                                $result["articles"][$data["post_parent"]]["image"]["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
-                                            }ksort($result["articles"][$data["post_parent"]]["image"]["srcset"]);}
+                                            $result["articles"][$data["post_parent"]]["image"] = $this->_setupWpImageData($data, $images_meta[$data["ID"]]);
                                         }
                                         break;
                                     /*文章本體*/
@@ -298,6 +276,31 @@ class wp_db_switch extends sqli_db_switch{
         return array("image/png","image/jpg","image/jpeg","image/gif");
     }
     
+    /**
+     * 整理wordpress的圖片資訊
+     * @param array $image_post post
+     * @param string $image_post_meta post_meta裡面的資料
+     * @return string
+     */
+    protected function _setupWpImageData(array $image_post , string $image_post_meta){
+        $image_dir = pathinfo($image_post["guid"],PATHINFO_DIRNAME);
+        $image_meta = unserialize($image_post_meta);
+        $result = array(
+            "alt"=>$image_post["post_content"],
+            "title"=>$image_post["post_title"],
+            "origin"=>array("src"=>$image_post["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]),
+            "srcset"=>array($image_meta["width"]=>$image_post["guid"]." ".$image_meta["width"]."w")
+        );
+        if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
+            /**
+             * (勿刪)暫時先註解掉：存在切圖的各種size
+             * $result["articles"][$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
+             */
+            $result["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
+        }ksort($result["srcset"]);}
+        return $result;
+    }
+
     /*下一個function*/
 }
 ?>
