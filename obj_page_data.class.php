@@ -73,10 +73,6 @@ class obj_page_data{
      */
     public $breadcrumb = array();
     
-    public function __construct(string $root_url,string $site_name) {
-        $this->breadcrumb[] = array("name"=>$site_name,"url"=>$root_url);
-    }
-    
     /**
      * 頁面麵包屑的輔助增加function
      * @param string $page_url 頁面的url，要帶http或是https
