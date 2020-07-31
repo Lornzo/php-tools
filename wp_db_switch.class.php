@@ -168,7 +168,10 @@ class wp_db_switch extends sqli_db_switch{
             $pic_meta_condition = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array("meta_value"))->getSelectString(array("post_id IN ('". implode("','", $posts_id)."')","meta_key='_thumbnail_id'"), array(), false);
             $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("meta_key='_wp_attachment_metadata'","post_id IN (".$pic_meta_condition.")"));
             
-            /*5.取出文章的精選圖片*/
+            /*5. 取出文章精選圖片的對照表*/
+            $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("post_id IN ('". implode("','", $posts_id)."')","meta_key='_thumbnail_id'"));
+            
+            /*6.取出文章的精選圖片*/
             $querys[] = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->getSelectString(array("ID IN(".$pic_meta_condition.")"));
             
             $result = $this->_combineWpPostsInfo($posts , $this->doQuerys($querys,true));
@@ -197,6 +200,8 @@ class wp_db_switch extends sqli_db_switch{
         $terms = array();
 
         $images_meta = array();
+        
+        $images_relation = array();
         
         if(!empty($sqli_querys_datas)){
             foreach($sqli_querys_datas as $datas_chunk){
@@ -243,10 +248,15 @@ class wp_db_switch extends sqli_db_switch{
                                     case "4":
                                         $images_meta[$data["post_id"]] = $data["meta_value"];
                                         break;
-                                    /*精選圖片*/
                                     case "5":
-                                        if(!empty($images_meta[$data["ID"]])){
-                                            $result["articles"][$data["post_parent"]]["image"] = $this->_setupWpImageData($data, $images_meta[$data["ID"]]);
+                                        if(!empty($images_meta[$data["meta_value"]])){
+                                            $images_relation[$data["meta_value"]] = $data["post_id"];
+                                        }
+                                        break;
+                                    /*精選圖片*/
+                                    case "6":
+                                        if(!empty($images_meta[$data["ID"]]) && !empty($images_relation[$data["ID"]])){
+                                            $result["articles"][$images_relation[$data["ID"]]]["image"] = $this->_setupWpImageData($data, $images_meta[$data["ID"]]);
                                         }
                                         break;
                                     /*文章本體*/
