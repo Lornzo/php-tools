@@ -165,7 +165,7 @@ class wp_db_switch extends sqli_db_switch{
             $querys[] = $this->setTable($this->_wp_table_pre."term_relationships")->setSelect(array())->getSelectString(array("object_id IN ('". implode("','", $posts_id)."')"));
 
             /*4.取出文章的精選圖片的meta*/
-            $pic_meta_condition = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->getSelectString(array("post_type='attachment'","post_mime_type IN ('". implode("','", $this->_getWpImageMineTypes())."')","post_parent IN ('". implode("','", $posts_id)."')"),array("GROUP BY post_parent"),false);
+            $pic_meta_condition = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array("meta_value"))->getSelectString(array("post_id IN ('". implode("','", $posts_id)."')","meta_key='_thumbnail_id'"), array(), false);
             $querys[] = $this->setTable($this->_wp_table_pre."postmeta")->setSelect(array())->getSelectString(array("meta_key='_wp_attachment_metadata'","post_id IN (".$pic_meta_condition.")"));
             
             /*5.取出文章的精選圖片*/
