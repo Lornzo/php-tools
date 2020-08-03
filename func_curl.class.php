@@ -36,6 +36,15 @@ class func_curl{
     }
     
     /**
+     * 全手動設定curlopt
+     * @param array $options
+     * @return $this
+     */
+    public function setCurlOptAll(array $options){
+        $this->_curl_option = $optionsr;return $this;
+    }
+    
+    /**
      * 移除curl的參數選項
      * @param array $keys
      * @return $this
@@ -44,41 +53,31 @@ class func_curl{
         if(!empty($keys)){foreach($keys as $key){if(array_key_exists($key, $this->_curl_option)){unset($this->_curl_option[$key]);}}}return $this;
     }
 
-    public function get(){
-        return $this->fetchPage();
+    /**
+     * 送出一個get request，並且return結果
+     * @return string 照常理來說，會是字串。
+     */
+    public function getRequest(){
+        return $this->sendRequest();
     }
     
-    public function post(){}
+    /**
+     * 送出一個post request，並且retur n結果
+     * @return string 照常理來說會是字串
+     */
+    public function postRequest(){
+        return $this->sendRequest();
+    }
     
-    public function fetchPage(){
+    /**
+     * 送出request
+     * @return string
+     */
+    public function sendRequest(){
         $ch = curl_init();
         curl_setopt_array($ch, $this->_curl_option);
-        $html = curl_exec($ch);
+        $data = curl_exec($ch);
         curl_close($ch);
-        
-        $dom = new DOMDocument(5,"UTF-8");
-        $dom->loadHTML($html);
-        print_r($dom->getElementsByTagName("section"));
-        
-        
-        //$rule_str = "/(<([\w]+)[^>]*>)(.*?)(<\/\\2>)/";
-//        $rule_str = "/<(.*)>.*<\/\1>|<(.*) \/>/";
-        //echo preg_match("/(<([\w]+)[^>]*>)(.*?)(<\/\\2>)/", $data,$match);exit();
-        //preg_match_all('#<body[^>]*>#i', $data, $match);  
-//        preg_match_all('/<body[^>]*>(.*)<\/body>/is',$data,$match);
-//preg_match_all("/(<([\w]+)[^>]*>)(.*?)(<\/\\2>)/", $data, $match,PREG_SET_ORDER);
-//        preg_match_all('/<div[^>]*>(.*)<\/div>/is',$data,$match);
-//        print_r($match);exit();
-        //print_r(strip_tags($data,"div"));
-//preg_match_all('/<div[^>]+>/i',$html, $result); 
-
-//print_r($result);
-//        exit();
-
-        exit();
         return $data;
     }
-    
-
-
 }
