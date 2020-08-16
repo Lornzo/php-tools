@@ -170,7 +170,10 @@ class sqli_db_switch{
      * @param $this
      */
     public function setPage(int $page){
-        $this->_limit_page = $page < 1 ? 1 : ($page <= $this->_limit_total)?$page:$this->_limit_total;return $this;
+        $this->_limit_page = 1;
+        if($page > 1){$this->_limit_page = ($page <= $this->_limit_total)?$page:$this->_limit_total;}
+        return $this;
+//        $this->_limit_page = $page < 1 ? 1 : ($page <= $this->_limit_total)?$page:$this->_limit_total;return $this;
     }
     
     /**
