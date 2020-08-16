@@ -173,7 +173,6 @@ class sqli_db_switch{
         $this->_limit_page = 1;
         if($page > 1){$this->_limit_page = ($page <= $this->_limit_total)?$page:$this->_limit_total;}
         return $this;
-//        $this->_limit_page = $page < 1 ? 1 : ($page <= $this->_limit_total)?$page:$this->_limit_total;return $this;
     }
     
     /**
@@ -300,7 +299,9 @@ class sqli_db_switch{
      * @return int 刪除的數量
      */
     public function deleteData(array $condition){
-        return (empty($condition) || empty($this->_table))?0:!empty($this->doQuery("DELETE FROM ".$this->_table." WHERE ".implode(" AND ", $condition).";"))?mysqli_affected_rows($this->_conn):0;
+        $result = 0;
+        if(!empty($condition) && !empty($this->_table)){$result = !empty($this->doQuery("DELETE FROM ".$this->_table." WHERE ".implode(" AND ", $condition).";"))?mysqli_affected_rows($this->_conn):0;}
+        return $result;
     }
     
     /**
