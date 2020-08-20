@@ -81,6 +81,11 @@ class sqli_db_switch{
      */
     protected $_limit_page_half = 5;
     
+    /**
+     * @var array 用在儲存工作階段的所有資訊 
+     */
+    protected $_buffer = array();
+    
     public function __construct() {
     }
     
@@ -417,6 +422,27 @@ class sqli_db_switch{
                 mysqli_set_charset($this->_conn, $connection_array["db_charset"]);
             }
         }
+    }
+    
+    /**
+     * 設定工作階段buffer，用在暫存table,select,還有limit
+     * @return $this
+     */
+    public function setBuffer(){
+        $this->_buffer = array("table"=>$this->_table,"select" => $this->_select,"limit"=>$this->_limit);return $this;
+    }
+    
+    /**
+     * 剛setBuffer()所暫存的資料放回去
+     * @return $this
+     */
+    public function releaseBuffer(){
+        if(!empty($this->_buffer)){
+            $this->_table = $this->_buffer["table"];
+            $this->_select = $this->_buffer["select"];
+            $this->_limit = $this->_buffer["limit"];
+        }
+        return $this;
     }
 
     /**
