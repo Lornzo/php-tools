@@ -279,6 +279,39 @@ class wp_db_switch extends sqli_db_switch{
     }
     
     /**
+     * 取出所有圖片的縮圖
+     * @param array $ignore 不想要選的post id
+     * @return array
+     */
+    public function getWpImageThumbnail(array $ignore=array()){
+        $this->setBuffer();
+        $querys = array();
+        
+        /*先取出圖片id*/
+        $condition = array();
+        $condition[] = "post_type='attachment'";
+        $condition[] = "post_mime_type IN ('".implode("','", $this->_getWpImageMineTypes())."')";
+        if(!empty($ignore)){$condition[] = "ID NOT IN('".implode("','", $ignore)."')";}
+
+        /*直接取出圖片的meta*/
+        $condition = array();
+        $condition[] = "meta_key = '_wp_attachment_metadata'";
+        $condition[] = "post_id IN (".$this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->useLimit(false)->getSelectString($condition, array("ORDER BY post_date DESC"),false).")";
+
+        $images_meta = $this->setDebug(true)->setSelect(array())->setTable($this->_wp_table_pre."postmeta")->listData($condition);
+        $result = array();
+        if(!empty($images_meta)){
+            foreach($images_meta as $meta){
+                $data =!empty($meta["meta_value"])?unserialize($meta["meta_value"]):array();
+                if(!empty($data["sizes"]["thumbnail"])){
+                    $result[$meta["post_id"]] = $data["sizes"]["thumbnail"];
+                }
+            }
+        }
+        return $result;
+    }
+    
+    /**
      * 取得wordpress裡面對於圖片mine type判斷的類型
      * @return array
      */
