@@ -298,7 +298,7 @@ class wp_db_switch extends sqli_db_switch{
         $condition[] = "meta_key = '_wp_attachment_metadata'";
         $condition[] = "post_id IN (".$query.")";
 
-        $images_meta = $this->setDebug(false)->setSelect(array())->setTable($this->_wp_table_pre."postmeta")->listData($condition);
+        $images_meta = $this->setSelect(array())->setTable($this->_wp_table_pre."postmeta")->listData($condition);
 
         $result = array();
         if(!empty($images_meta)){
