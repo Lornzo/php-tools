@@ -308,6 +308,7 @@ class wp_db_switch extends sqli_db_switch{
                 }
             }
         }
+        $this->releaseBuffer();
         return $result;
     }
     
