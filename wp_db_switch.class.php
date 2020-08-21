@@ -285,20 +285,21 @@ class wp_db_switch extends sqli_db_switch{
      */
     public function getWpImageThumbnail(array $ignore=array()){
         $this->setBuffer();
-        $querys = array();
         
         /*先取出圖片id*/
         $condition = array();
         $condition[] = "post_type='attachment'";
         $condition[] = "post_mime_type IN ('".implode("','", $this->_getWpImageMineTypes())."')";
         if(!empty($ignore)){$condition[] = "ID NOT IN('".implode("','", $ignore)."')";}
-
+        $query = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->useLimit(false)->getSelectString($condition, array("ORDER BY post_date DESC"),false);
+        
         /*直接取出圖片的meta*/
         $condition = array();
         $condition[] = "meta_key = '_wp_attachment_metadata'";
-        $condition[] = "post_id IN (".$this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->useLimit(false)->getSelectString($condition, array("ORDER BY post_date DESC"),false).")";
+        $condition[] = "post_id IN (".$query.")";
 
         $images_meta = $this->setDebug(true)->setSelect(array())->setTable($this->_wp_table_pre."postmeta")->listData($condition);
+
         $result = array();
         if(!empty($images_meta)){
             foreach($images_meta as $meta){
