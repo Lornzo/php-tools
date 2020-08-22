@@ -291,24 +291,34 @@ class wp_db_switch extends sqli_db_switch{
         $condition[] = "post_type='attachment'";
         $condition[] = "post_mime_type IN ('".implode("','", $this->_getWpImageMineTypes())."')";
         if(!empty($ignore)){$condition[] = "ID NOT IN('".implode("','", $ignore)."')";}
-        $query = $this->setTable($this->_wp_table_pre."posts")->setSelect(array("ID"))->useLimit(false)->getSelectString($condition, array("ORDER BY post_date DESC"),false);
-        
+        $images_data = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->useLimit(false)->listData($condition, array("ORDER BY post_date DESC"));
+        $images_id = array();
+        $images = array();
+        if(!empty($images_data)){
+            foreach($images_data as $img_data){
+                $images_id[] = $img_data["ID"];
+                $images[$img_data["ID"]] = $img_data;
+            }
+        }
+
+        $result = array();
+
         /*直接取出圖片的meta*/
         $condition = array();
         $condition[] = "meta_key = '_wp_attachment_metadata'";
-        $condition[] = "post_id IN (".$query.")";
-
+        $condition[] = "post_id IN ('". implode("','", $images_id)."')";
         $images_meta = $this->setSelect(array())->setTable($this->_wp_table_pre."postmeta")->listData($condition);
-
-        $result = array();
         if(!empty($images_meta)){
-            foreach($images_meta as $meta){
-                $data =!empty($meta["meta_value"])?unserialize($meta["meta_value"]):array();
-                if(!empty($data["sizes"]["thumbnail"])){
-                    $result[$meta["post_id"]] = $data["sizes"]["thumbnail"];
+            foreach($images_meta as $img_meta){
+                if(!empty($images[$img_meta["post_id"]])){
+                    $buffer = $this->_setupWpImageData($images[$img_meta["post_id"]], $img_meta["meta_value"]);
+                    if(!empty($buffer["thumb"]["file"])){
+                        $result[$img_meta["post_id"]] = $buffer["thumb"]["file"];
+                    }
                 }
             }
         }
+        unset($images_data,$images_id,$images,$images_meta);
         $this->releaseBuffer();
         return $result;
     }
@@ -334,7 +344,8 @@ class wp_db_switch extends sqli_db_switch{
             "alt"=>$image_post["post_content"],
             "title"=>$image_post["post_title"],
             "origin"=>array("src"=>$image_post["guid"],"width"=>$image_meta["width"],"height"=>$image_meta["height"]),
-            "srcset"=>array($image_meta["width"]=>$image_post["guid"]." ".$image_meta["width"]."w")
+            "srcset"=>array($image_meta["width"]=>$image_post["guid"]." ".$image_meta["width"]."w"),
+            "thumb"=>array("size"=>$image_meta["width"],"file"=>$image_post["guid"])
         );
         if(!empty($image_meta["sizes"])){foreach($image_meta["sizes"] as $size_name => $size_data){
             /**
@@ -342,6 +353,7 @@ class wp_db_switch extends sqli_db_switch{
              * $result["articles"][$data["post_parent"]]["image"][$size_name] = array("src"=>$image_dir."/".$size_data["file"],"width"=>$size_data["width"],"height"=>$size_data["height"]);
              */
             $result["srcset"][$size_data["width"]] = $image_dir."/".$size_data["file"]." ".$size_data["width"]."w";
+            if($size_data["width"] < $result["thumb"]["size"]){$result["thumb"]=array("size"=>$size_data["width"],"file"=>$image_dir."/".$size_data["file"]);}
         }ksort($result["srcset"]);}
         return $result;
     }
