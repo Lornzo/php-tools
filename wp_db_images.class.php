@@ -9,16 +9,18 @@ require_once(__DIR__."/wp_db_switch.class.php");
 class wp_db_images extends wp_db_switch{
     /**
      * 取出所有圖片的縮圖
+     * @param array $wp_posts_ids 想要選的id
      * @param array $ignore 不想要選的post id
      * @return array
      */
-    public function getWpImageThumbnail(array $ignore=array()){
+    public function getWpImageThumbnail(array $wp_posts_ids = array(),array $ignore=array()){
         $this->setBuffer();
         
         /*先取出圖片id*/
         $condition = array();
         $condition[] = "post_type='attachment'";
         $condition[] = "post_mime_type IN ('".implode("','", $this->_getWpImageMineTypes())."')";
+        if(!empty($wp_posts_ids)){$condition[] = "ID IN ('".implode("','", $wp_posts_ids)."')";}
         if(!empty($ignore)){$condition[] = "ID NOT IN('".implode("','", $ignore)."')";}
         $images_data = $this->setTable($this->_wp_table_pre."posts")->setSelect(array())->useLimit(false)->listData($condition, array("ORDER BY post_date DESC"));
         $images_id = array();
