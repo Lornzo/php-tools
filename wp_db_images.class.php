@@ -44,7 +44,7 @@ class wp_db_images extends wp_db_switch{
                 if(!empty($images[$img_meta["post_id"]])){
                     $buffer = $this->_setupWpImageData($images[$img_meta["post_id"]], $img_meta["meta_value"]);
                     if(!empty($buffer["thumb"]["file"])){
-                        $result[$img_meta["post_id"]] = $buffer["thumb"]["file"];
+                        $result[$img_meta["post_id"]] = array("name"=>!empty($images[$img_meta["post_id"]]["post_title"])?$images[$img_meta["post_id"]]["post_title"]:"","file"=>$buffer["thumb"]["file"]);
                     }
                 }
             }
