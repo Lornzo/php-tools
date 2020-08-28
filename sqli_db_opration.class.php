@@ -45,7 +45,9 @@ class sqli_db_opration extends sqli_db_switch{
                 }
                 $query .= !empty($col_data["attribute"])?" ".$col_data["attribute"]:"";
                 $query .= !empty($col_data["is_null"])?" NULL":" NOT NULL";
-                $query .= !empty($col_data["default"])?" DEFAULT '".$col_data["default"]."'":"";
+                if(!empty($col_data["default_set"])){
+                    $query .= " DEFAULT '".$col_data["default"]."'";
+                }
                 $query .= !empty($col_data["auto_increment"])?" AUTO_INCREMENT":"";
                 $query .= !empty($col_data["comment"])?" COMMENT '".$col_data["comment"]."'":"";
                 $result[] = $query;
